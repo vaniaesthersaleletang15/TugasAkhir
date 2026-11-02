@@ -47,3 +47,17 @@ Seluruh backend: 223 test lulus, 682 assertion
 4. Pilih Baik/Tidak, isi keterangan, dan periksa field tanggal pada dokumen yang memiliki masa berlaku.
 5. Pastikan tidak ada scroll horizontal pada daftar item dan seluruh kontrol dapat disentuh.
 
+## Koreksi Layout Lanjutan
+
+Smoke test pada ponsel setelah implementasi pertama menunjukkan teks item masih terjepit menjadi satu huruf per baris. Penyebabnya adalah elemen tabel tetap dipengaruhi `colgroup`, `table-layout`, `rowspan`, dan aturan tabel responsif lain walaupun baris serta sel sudah diubah menjadi `display: block`.
+
+Koreksi akhir menggunakan dua struktur tampilan yang terpisah:
+
+- tabel semantik asli hanya ditampilkan pada desktop;
+- kartu React khusus mobile ditampilkan pada layar maksimal 820 px;
+- kartu mobile tidak menggunakan elemen `table`, `colgroup`, atau `rowspan`;
+- setiap kartu memiliki judul item, pelaksana, prioritas, tombol kondisi, keterangan, dan tanggal masa berlaku;
+- seluruh kontainer memakai `min-width: 0` dan `overflow-wrap` untuk mencegah teks mendorong atau menyempitkan layout.
+
+Regresi frontend setelah koreksi akhir tetap lulus: 13 unit test, 0 gagal, dan build Vite berhasil dengan 1.894 modul.
+

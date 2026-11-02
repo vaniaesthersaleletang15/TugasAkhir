@@ -985,7 +985,7 @@ export function ChecklistEditor({ user }) {
             )}
           </div>
         </header>
-        <div className="table-scroll">
+        <div className="table-scroll checklist-desktop-table">
           <table>
             <colgroup>
               <col className="col-number" />
@@ -1098,6 +1098,107 @@ export function ChecklistEditor({ user }) {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="checklist-mobile-cards">
+          {form.checklist.length === 0 && (
+            <div className="checklist-mobile-empty">
+              <strong>Item pemeriksaan belum berhasil dimuat.</strong>
+              <span>
+                Periksa koneksi, lalu muat ulang halaman. Jika tetap kosong,
+                hubungi administrator sistem.
+              </span>
+              <button
+                type="button"
+                className="button secondary"
+                onClick={() => window.location.reload()}
+              >
+                Muat ulang halaman
+              </button>
+            </div>
+          )}
+          {form.checklist.map((checklistItem, index) => (
+            <article className="checklist-mobile-item" key={index}>
+              <header>
+                {checklistItem.nomor && (
+                  <span className="checklist-mobile-number">
+                    {checklistItem.nomor}
+                  </span>
+                )}
+                <div>
+                  <small>Item pemeriksaan {index + 1}</small>
+                  <strong>{checklistItem.nama}</strong>
+                </div>
+              </header>
+              <dl className="checklist-mobile-meta">
+                <div>
+                  <dt>Pelaksana</dt>
+                  <dd>{checklistItem.pelaksana || "—"}</dd>
+                </div>
+                <div>
+                  <dt>Prioritas</dt>
+                  <dd>{checklistItem.prioritas || "—"}</dd>
+                </div>
+              </dl>
+              <fieldset className="checklist-mobile-condition">
+                <legend>Kondisi pemeriksaan</legend>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={checklistItem.baik}
+                    disabled={form.statusApproval !== "draft"}
+                    onChange={(event) =>
+                      item(index, {
+                        baik: event.target.checked,
+                        tidak: event.target.checked
+                          ? false
+                          : checklistItem.tidak,
+                      })
+                    }
+                  />
+                  <span>Baik</span>
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={checklistItem.tidak}
+                    disabled={form.statusApproval !== "draft"}
+                    onChange={(event) =>
+                      item(index, {
+                        tidak: event.target.checked,
+                        baik: event.target.checked ? false : checklistItem.baik,
+                      })
+                    }
+                  />
+                  <span>Tidak baik</span>
+                </label>
+              </fieldset>
+              <label className="checklist-mobile-note">
+                Keterangan
+                <textarea
+                  value={checklistItem.keterangan}
+                  disabled={form.statusApproval !== "draft"}
+                  placeholder="Tuliskan keterangan jika diperlukan"
+                  onChange={(event) =>
+                    item(index, { keterangan: event.target.value })
+                  }
+                />
+              </label>
+              {usesExpiryDate(checklistItem.nama) && (
+                <label className="checklist-mobile-expiry">
+                  Tanggal masa berlaku habis
+                  <input
+                    type="date"
+                    value={checklistItem.tanggal_expire}
+                    required
+                    disabled={form.statusApproval !== "draft"}
+                    onChange={(event) =>
+                      item(index, { tanggal_expire: event.target.value })
+                    }
+                  />
+                </label>
+              )}
+            </article>
+          ))}
         </div>
       </section>
       <ChecklistFooter

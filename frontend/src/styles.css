@@ -3623,6 +3623,9 @@ td small {
   margin-bottom: 18px;
   overflow: hidden;
 }
+.checklist-mobile-cards {
+  display: none;
+}
 .professional-checklist .checklist-progress-header {
   min-height: 76px;
   padding: 0 22px;
@@ -4525,6 +4528,216 @@ td small {
   }
 
   .professional-checklist .checklist-edit .checklist-empty-row span {
+    max-width: 420px;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  /* Gunakan struktur kartu React tersendiri di layar kecil. Tabel desktop
+     disembunyikan sepenuhnya agar colgroup/table-layout tidak menjepit teks. */
+  .professional-checklist .checklist-desktop-table {
+    display: none;
+  }
+
+  .professional-checklist .checklist-mobile-cards {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    padding: 12px;
+    background: #f4f7fa;
+  }
+
+  .professional-checklist .checklist-mobile-item {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #dce3eb;
+    border-radius: 11px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(13, 31, 53, 0.05);
+  }
+
+  .professional-checklist .checklist-mobile-item > header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+    padding: 14px;
+    border-bottom: 1px solid #e6ebf0;
+    background: #f9fafc;
+  }
+
+  .professional-checklist .checklist-mobile-item > header > div {
+    min-width: 0;
+  }
+
+  .professional-checklist .checklist-mobile-item header small,
+  .professional-checklist .checklist-mobile-item header strong {
+    display: block;
+  }
+
+  .professional-checklist .checklist-mobile-item header small {
+    margin-bottom: 4px;
+    color: #7b8998;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  .professional-checklist .checklist-mobile-item header strong {
+    color: #21384e;
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .professional-checklist .checklist-mobile-number {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--form-soft);
+    color: var(--form-primary);
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .professional-checklist .checklist-mobile-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    border-bottom: 1px solid #e6ebf0;
+  }
+
+  .professional-checklist .checklist-mobile-meta > div {
+    min-width: 0;
+    padding: 11px 14px;
+  }
+
+  .professional-checklist .checklist-mobile-meta > div + div {
+    border-left: 1px solid #e6ebf0;
+  }
+
+  .professional-checklist .checklist-mobile-meta dt {
+    margin-bottom: 4px;
+    color: #7b8998;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.35px;
+    text-transform: uppercase;
+  }
+
+  .professional-checklist .checklist-mobile-meta dd {
+    margin: 0;
+    color: #34495e;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .professional-checklist .checklist-mobile-condition {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+    padding: 13px 14px;
+    border: 0;
+    border-bottom: 1px solid #e6ebf0;
+  }
+
+  .professional-checklist .checklist-mobile-condition legend {
+    grid-column: 1 / -1;
+    margin-bottom: 2px;
+    padding: 0;
+    color: #56687a;
+    font-size: 9px;
+    font-weight: 800;
+  }
+
+  .professional-checklist .checklist-mobile-condition label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 9px 11px;
+    border: 1px solid #d8e1e9;
+    border-radius: 8px;
+    background: #fbfcfd;
+    color: #34495e;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .professional-checklist .checklist-mobile-condition input {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    margin: 0;
+  }
+
+  .professional-checklist .checklist-mobile-note,
+  .professional-checklist .checklist-mobile-expiry {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+    padding: 13px 14px;
+    color: #56687a;
+    font-size: 9px;
+    font-weight: 800;
+  }
+
+  .professional-checklist .checklist-mobile-note textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 76px;
+    padding: 10px 11px;
+    border: 1px solid #d3dce5;
+    border-radius: 8px;
+    background: #fbfcfd;
+    color: #2a3e52;
+    font-size: 16px;
+    line-height: 1.45;
+    resize: vertical;
+  }
+
+  .professional-checklist .checklist-mobile-expiry {
+    padding-top: 0;
+  }
+
+  .professional-checklist .checklist-mobile-expiry input {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 9px 11px;
+    border: 1px solid #d3dce5;
+    border-radius: 8px;
+    background: #fff;
+    color: #2a3e52;
+    font-size: 16px;
+  }
+
+  .professional-checklist .checklist-mobile-empty {
+    display: grid;
+    justify-items: center;
+    gap: 9px;
+    min-width: 0;
+    padding: 24px 16px;
+    border: 1px solid #e3c8cd;
+    border-radius: 10px;
+    background: #fff;
+    color: #526477;
+    text-align: center;
+  }
+
+  .professional-checklist .checklist-mobile-empty strong {
+    color: #b01831;
+    font-size: 12px;
+  }
+
+  .professional-checklist .checklist-mobile-empty span {
     max-width: 420px;
     font-size: 10px;
     line-height: 1.5;

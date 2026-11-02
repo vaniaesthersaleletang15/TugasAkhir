@@ -46,18 +46,17 @@ test("layout mencegah overflow horizontal pada viewport minimum", () => {
   assert.match(css, /@media \(max-width: 430px\)/);
 });
 
-test("item checklist menjadi kartu vertikal dan memiliki keadaan kosong di ponsel", () => {
+test("item checklist memakai struktur kartu terpisah dan keadaan kosong di ponsel", () => {
   const css = source("src/styles.css");
   const modules = source("src/Modules.jsx");
 
+  assert.match(css, /\.checklist-mobile-cards \{[\s\S]*?display: none;/);
   assert.match(
     css,
-    /\.professional-checklist \.checklist-edit thead \{[\s\S]*?display: none;/,
+    /\.professional-checklist \.checklist-desktop-table \{[\s\S]*?display: none;/,
   );
-  assert.match(
-    css,
-    /\.professional-checklist \.checklist-edit td\[data-label\]::before/,
-  );
-  assert.match(modules, /className="checklist-empty-row"/);
+  assert.match(css, /\.professional-checklist \.checklist-mobile-cards/);
+  assert.match(modules, /className="checklist-mobile-item"/);
+  assert.match(modules, /className="checklist-mobile-empty"/);
   assert.match(modules, /Item pemeriksaan tidak berhasil dimuat/);
 });
