@@ -67,6 +67,9 @@ test("item checklist memakai struktur kartu terpisah dan keadaan kosong di ponse
     /MOBILE_CHECKLIST_QUERY = "\(max-width: 820px\), \(pointer: coarse\)"/,
   );
   assert.match(modules, /window\.matchMedia\(MOBILE_CHECKLIST_QUERY\)/);
+  assert.match(modules, /typeof mediaQuery\.addEventListener === "function"/);
+  assert.match(modules, /mediaQuery\.addListener\(synchronizeLayout\)/);
+  assert.match(modules, /mediaQuery\.removeListener\(synchronizeLayout\)/);
   assert.match(modules, /hidden=\{mobileChecklist\}/);
   assert.match(modules, /display: mobileChecklist \? "grid" : "none"/);
   assert.match(modules, /Mode ponsel aktif/);

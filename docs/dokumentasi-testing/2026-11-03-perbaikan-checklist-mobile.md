@@ -91,3 +91,15 @@ Deteksi pointer coarse: tersedia
 Cache-Control: no-cache
 ```
 
+## Koreksi Layar Putih pada WebView Mobile
+
+Setelah frontend lokal diperbarui, browser dengan user-agent iPhone berhasil memuat HTML, CSS, JavaScript, autentikasi, dan endpoint `auth/me`, tetapi berhenti saat editor checklist dipasang. Halaman login dapat dirender normal melalui screenshot Chrome headless. Titik risiko berada pada listener `MediaQueryList` di editor checklist: beberapa Safari/WebView hanya menyediakan API lama `addListener/removeListener` dan tidak menyediakan `addEventListener/removeEventListener`.
+
+Listener deteksi mobile kemudian dibuat kompatibel:
+
+- browser modern menggunakan `addEventListener('change', ...)`;
+- Safari/WebView lama menggunakan fallback `addListener(...)`;
+- cleanup memakai pasangan `removeEventListener` atau `removeListener` yang sesuai.
+
+Setelah koreksi, 13 unit test lulus, build Vite berhasil, image frontend localhost dibangun ulang, dan container frontend dibuat ulang tanpa menyentuh database.
+

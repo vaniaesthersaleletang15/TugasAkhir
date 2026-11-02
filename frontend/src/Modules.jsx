@@ -502,9 +502,19 @@ export function ChecklistEditor({ user }) {
     const synchronizeLayout = (event) => setMobileChecklist(event.matches);
 
     setMobileChecklist(mediaQuery.matches);
-    mediaQuery.addEventListener("change", synchronizeLayout);
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", synchronizeLayout);
+    } else {
+      mediaQuery.addListener(synchronizeLayout);
+    }
 
-    return () => mediaQuery.removeEventListener("change", synchronizeLayout);
+    return () => {
+      if (typeof mediaQuery.removeEventListener === "function") {
+        mediaQuery.removeEventListener("change", synchronizeLayout);
+      } else {
+        mediaQuery.removeListener(synchronizeLayout);
+      }
+    };
   }, []);
   useEffect(() => {
     (async () => {
