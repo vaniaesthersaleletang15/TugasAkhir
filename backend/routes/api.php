@@ -1,0 +1,88 @@
+<?php
+
+use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\PrimaController;
+use App\Http\Controllers\Api\RegionalController;
+use Illuminate\Support\Facades\Route;
+
+Route::prefix('v1')->group(function () {
+    Route::get('/auth/captcha-config', [PrimaController::class, 'captchaConfig'])->middleware('throttle:60,1');
+    Route::get('/public/terminals', [PrimaController::class, 'publicTerminals'])->middleware('throttle:60,1');
+    Route::get('/public/transporters', [PrimaController::class, 'publicTransporters'])->middleware('throttle:60,1');
+    Route::post('/auth/login', [PrimaController::class, 'login'])->middleware('throttle:login');
+    Route::post('/auth/register', [PrimaController::class, 'register'])->middleware('throttle:6,1');
+    Route::post('/auth/forgot-password', [PrimaController::class, 'forgotPassword'])->middleware('throttle:password-reset-request');
+    Route::post('/auth/reset-password', [PrimaController::class, 'resetPassword'])->middleware('throttle:password-reset-confirm');
+    Route::get('/verify/{value}', [PrimaController::class, 'verify'])->middleware('throttle:60,1');
+    Route::post('/scheduler/run/{secret}', [AdminController::class, 'runScheduler'])->middleware('throttle:3,1');
+
+    Route::middleware(['auth:sanctum', 'prima.session', 'prima.available'])->group(function () {
+        Route::post('/auth/logout', [PrimaController::class, 'logout']);
+        Route::get('/auth/me', [PrimaController::class, 'me']);
+        Route::put('/auth/profile', [PrimaController::class, 'updateProfile']);
+        Route::put('/auth/password', [PrimaController::class, 'changePassword']);
+        Route::get('/dashboard', [PrimaController::class, 'dashboard']);
+        Route::get('/regional/terminals', [RegionalController::class, 'terminals']);
+        Route::get('/regional/dashboard', [RegionalController::class, 'dashboard']);
+        Route::get('/regional/ekim', [RegionalController::class, 'ekim']);
+        Route::get('/regional/report', [RegionalController::class, 'report']);
+        Route::get('/regional/audits', [RegionalController::class, 'audits']);
+        Route::get('/regional/documents', [RegionalController::class, 'documents']);
+        Route::get('/regional/spvs', [RegionalController::class, 'spvs']);
+        Route::post('/regional/spvs', [RegionalController::class, 'createSpv']);
+        Route::patch('/regional/spvs/{id}/status', [RegionalController::class, 'toggleSpv'])->whereNumber('id');
+        Route::post('/regional/spvs/{id}/reset-password', [RegionalController::class, 'resetSpvPassword'])->whereNumber('id');
+        Route::get('/my-ekim-notifications', [PrimaController::class, 'ekimNotifications']);
+        Route::post('/my-ekim-notifications/read', [PrimaController::class, 'readEkimNotifications']);
+        Route::get('/vehicles', [PrimaController::class, 'vehicles']);
+        Route::get('/transporters', [PrimaController::class, 'transporters']);
+        Route::get('/my-transporters', [PrimaController::class, 'myTransporters']);
+        Route::get('/filter-transporters', [PrimaController::class, 'filterTransporters']);
+        Route::get('/checklists/stats', [PrimaController::class, 'checklistStats']);
+        Route::get('/checklists/template', [PrimaController::class, 'template']);
+        Route::get('/checklists', [PrimaController::class, 'checklists']);
+        Route::post('/checklists', [PrimaController::class, 'saveChecklist']);
+        Route::get('/checklists/{id}', [PrimaController::class, 'checklist'])->whereNumber('id');
+        Route::put('/checklists/{id}', [PrimaController::class, 'saveChecklist'])->whereNumber('id');
+        Route::delete('/checklists/{id}', [PrimaController::class, 'deleteChecklist'])->whereNumber('id');
+        Route::post('/checklists/signature', [PrimaController::class, 'signature']);
+        Route::post('/checklists/workflow', [PrimaController::class, 'workflow']);
+
+        Route::get('/users', [AdminController::class, 'users']);
+        Route::post('/users', [AdminController::class, 'createUser']);
+        Route::put('/users/{id}', [AdminController::class, 'updateUser']);
+        Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
+        Route::patch('/users/{id}/status', [AdminController::class, 'toggleUser']);
+        Route::post('/users/{id}/reset-password', [AdminController::class, 'resetPassword']);
+        Route::get('/master-transporters', [AdminController::class, 'masterTransporters']);
+        Route::post('/master-transporters', [AdminController::class, 'saveTransporter']);
+        Route::put('/master-transporters/{id}', [AdminController::class, 'saveTransporter'])->whereNumber('id');
+        Route::patch('/master-transporters/{id}/status', [AdminController::class, 'toggleTransporter'])->whereNumber('id');
+        Route::get('/registrations', [AdminController::class, 'registrations']);
+        Route::post('/registrations/{id}/review', [AdminController::class, 'reviewRegistration']);
+        Route::get('/documents', [AdminController::class, 'documents']);
+        Route::post('/documents', [AdminController::class, 'uploadDocument']);
+        Route::delete('/documents/{id}', [AdminController::class, 'deleteDocument']);
+        Route::post('/documents/{id}/review', [AdminController::class, 'reviewDocument']);
+        Route::get('/documents/{id}/download', [AdminController::class, 'downloadDocument']);
+        Route::get('/audits', [AdminController::class, 'audits']);
+        Route::get('/alerts', [AdminController::class, 'alerts']);
+        Route::get('/settings', [AdminController::class, 'settings']);
+        Route::put('/settings', [AdminController::class, 'saveSettings']);
+        Route::post('/settings/backup', [AdminController::class, 'backup']);
+        Route::get('/settings/restore-requests', [AdminController::class, 'restoreRequests']);
+        Route::post('/settings/restore-requests', [AdminController::class, 'requestRestore']);
+        Route::post('/settings/restore-requests/{id}/decision', [AdminController::class, 'decideRestore'])->whereNumber('id');
+        Route::post('/settings/restore-requests/{id}/execute', [AdminController::class, 'executeRestore'])->whereNumber('id');
+        Route::post('/settings/audit-retention', [AdminController::class, 'retention']);
+        Route::get('/notifications', [AdminController::class, 'notifications']);
+        Route::put('/notifications', [AdminController::class, 'saveNotifications']);
+        Route::post('/notifications/regenerate-cron', [AdminController::class, 'regenerateCron']);
+        Route::get('/my-vehicles', [AdminController::class, 'myVehicles']);
+        Route::post('/my-vehicles', [AdminController::class, 'registerMyVehicle']);
+        Route::put('/my-vehicles/{id}', [AdminController::class, 'updateMyVehicle'])->whereNumber('id');
+        Route::post('/vehicles/manage', [AdminController::class, 'saveVehicle']);
+        Route::get('/vehicles/{id}/history', [AdminController::class, 'vehicleHistory'])->whereNumber('id');
+        Route::get('/export/checklists', [AdminController::class, 'export']);
+    });
+});
