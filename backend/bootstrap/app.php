@@ -29,6 +29,14 @@ return Application::configure(basePath: dirname(__DIR__))
             | Request::HEADER_X_FORWARDED_PORT
             | Request::HEADER_X_FORWARDED_PROTO);
 
+        // Endpoint API harus selalu menghasilkan respons JSON 401. Tanpa
+        // callback ini, klien yang tidak mengirim header Accept JSON membuat
+        // middleware auth mencoba mengarahkan ke route web `login` yang memang
+        // tidak tersedia pada backend API-only.
+        $middleware->redirectGuestsTo(
+            static fn (Request $request): ?string => $request->is('api/*') ? null : '/'
+        );
+
         $middleware->append(SecurityHeaders::class);
         $middleware->alias([
             'prima.available' => EnsurePrimaAvailable::class,

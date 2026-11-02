@@ -33,3 +33,14 @@ Regression test backend setelah perbaikan struktur:
 ```
 
 Hasil rebuild backend, health check container, HTTPS, API, dan smoke test dicatat setelah deployment ulang selesai.
+
+### Temuan smoke test autentikasi
+
+Request biasa tanpa header `Accept: application/json` ke endpoint terlindungi semula menghasilkan HTTP 500 dengan log `Route [login] not defined`. Middleware autentikasi Laravel mencoba redirect web karena request tidak menyatakan format JSON, sedangkan backend ini bersifat API-only.
+
+Perbaikan mengatur redirect tamu untuk path `api/*` menjadi `null`, sehingga `AuthenticationException` selalu diproses oleh handler JSON Indonesia. Ditambahkan regression test khusus request tanpa header Accept JSON.
+
+```text
+LocalizedApiResponseTest: 5 passed (17 assertions)
+Seluruh backend: 223 passed (673 assertions)
+```

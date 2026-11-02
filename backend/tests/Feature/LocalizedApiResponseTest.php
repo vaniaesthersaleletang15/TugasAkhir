@@ -30,6 +30,14 @@ class LocalizedApiResponseTest extends TestCase
             ]);
     }
 
+    public function test_unauthenticated_api_without_json_accept_header_still_returns_json_401(): void
+    {
+        $this->get('/api/v1/auth/me')
+            ->assertUnauthorized()
+            ->assertHeader('Content-Type', 'application/json')
+            ->assertJsonPath('message', 'Sesi Anda telah berakhir. Silakan masuk kembali.');
+    }
+
     public function test_default_http_errors_are_in_indonesian(): void
     {
         $this->getJson('/api/test-forbidden')
