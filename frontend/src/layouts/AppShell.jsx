@@ -285,7 +285,7 @@ export default function AppShell({ user, onLogout }) {
               user.role === "regional_manager" ? (
                 <RegionalDashboard user={user} />
               ) : (
-                <Dashboard user={user} />
+                <DashboardPage user={user} />
               )
             }
           />

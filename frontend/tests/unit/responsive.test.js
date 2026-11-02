@@ -16,6 +16,17 @@ test("layout utama memiliki breakpoint dan drawer navigasi mobile", () => {
   assert.match(shell, /mobileOpen \? "open" : ""/);
 });
 
+test("shell pengguna merender komponen dashboard yang benar setelah login", () => {
+  const shell = source("src/layouts/AppShell.jsx");
+
+  assert.match(
+    shell,
+    /import DashboardPage from "\.\.\/pages\/dashboard\/DashboardPage"/,
+  );
+  assert.match(shell, /<DashboardPage user=\{user\} \/>/);
+  assert.doesNotMatch(shell, /<Dashboard user=\{user\} \/>/);
+});
+
 test("form login beralih menjadi satu kolom pada tablet dan ponsel", () => {
   const css = source("src/styles.css");
 

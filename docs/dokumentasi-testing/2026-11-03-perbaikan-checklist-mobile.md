@@ -103,3 +103,27 @@ Listener deteksi mobile kemudian dibuat kompatibel:
 
 Setelah koreksi, 13 unit test lulus, build Vite berhasil, image frontend localhost dibangun ulang, dan container frontend dibuat ulang tanpa menyentuh database.
 
+## Akar Masalah Layar Putih Setelah Login
+
+Reproduksi terautentikasi di `http://localhost:8092/#/checklists/new/INDUSTRI` menunjukkan bahwa layar putih tidak lagi berasal dari tabel atau media query. Pemeriksaan DOM memperlihatkan elemen `#root` kosong, sedangkan Chrome DevTools Protocol menangkap exception berikut:
+
+```text
+ReferenceError: Dashboard is not defined
+```
+
+`AppShell` mengimpor komponen dengan nama `DashboardPage`, tetapi route utama masih mencoba merender `<Dashboard>`. Karena seluruh daftar route dibuat saat `AppShell` dirender, kesalahan tersebut menghentikan semua halaman pengguna setelah login, termasuk route checklist yang sedang dibuka.
+
+Koreksi mengganti route tersebut menjadi `<DashboardPage user={user} />` dan menambahkan unit test regresi yang memastikan import dan pemakaian nama komponen tetap konsisten. Verifikasi browser terautentikasi kemudian wajib memastikan elemen root tidak kosong dan teks **Item Pemeriksaan** beserta daftar item tampil.
+
+Hasil verifikasi setelah container localhost dibangun ulang:
+
+```text
+14 unit test frontend lulus
+Build Vite berhasil (1.894 modul)
+Route: /#/checklists/new/INDUSTRI
+Root HTML: 45.715 karakter
+Ringkasan: 0 dari 25 item diperiksa
+Kartu terdeteksi: STNK, PAJAK, SIMFIT (Industri), dan item berikutnya
+Exception JavaScript: 0
+```
+
