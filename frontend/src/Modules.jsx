@@ -482,6 +482,8 @@ const emptyForm = (jenis) => ({
   statusApproval: "draft",
   checklist: [],
 });
+const MOBILE_CHECKLIST_QUERY = "(max-width: 820px), (pointer: coarse)";
+
 export function ChecklistEditor({ user }) {
   const { jenis = "SPBU", id } = useParams(),
     nav = useNavigate(),
@@ -492,11 +494,11 @@ export function ChecklistEditor({ user }) {
     [submitting, setSubmitting] = useState(false),
     [note, setNote] = useState(null),
     [mobileChecklist, setMobileChecklist] = useState(
-      () => window.matchMedia("(max-width: 820px)").matches,
+      () => window.matchMedia(MOBILE_CHECKLIST_QUERY).matches,
     ),
     readOnly = user?.role === "regional_manager";
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 820px)");
+    const mediaQuery = window.matchMedia(MOBILE_CHECKLIST_QUERY);
     const synchronizeLayout = (event) => setMobileChecklist(event.matches);
 
     setMobileChecklist(mediaQuery.matches);
@@ -981,6 +983,9 @@ export function ChecklistEditor({ user }) {
             <small>
               Periksa setiap komponen dan pilih satu kondisi yang sesuai.
             </small>
+            {mobileChecklist && (
+              <span className="checklist-mobile-mode">Mode ponsel aktif</span>
+            )}
           </div>
           <div className="inspection-progress-summary">
             <div>

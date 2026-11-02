@@ -71,3 +71,9 @@ Tangkapan layar berikutnya menunjukkan tabel desktop masih dapat muncul akibat u
 
 Dengan perlindungan ini, tampilan mobile tidak lagi bergantung pada urutan atau spesifisitas aturan tabel lama. Regresi tetap lulus 13/13 dan build produksi menghasilkan asset CSS/JS baru dengan hash berbeda.
 
+## Verifikasi Bundle dan Perangkat Sentuh
+
+Screenshot pengguna masih memperlihatkan teks versi lama `0 item diperiksa`, sedangkan source terbaru menggunakan `0 dari 25 item diperiksa`. Pemeriksaan langsung ke domain dan cache-buster menunjukkan server telah mengirim bundle baru dengan `Cache-Control: no-cache`; kondisi tersebut mengindikasikan tab/browser masih menjalankan bundle lama.
+
+Deteksi mobile kemudian diperluas dari lebar viewport menjadi `(max-width: 820px), (pointer: coarse)` agar mode kartu tetap digunakan ketika browser ponsel memakai mode situs desktop. Label **Mode ponsel aktif** ditambahkan pada header sebagai indikator yang dapat diverifikasi langsung. Unit test tetap lulus 13/13 dan build produksi berhasil.
+
