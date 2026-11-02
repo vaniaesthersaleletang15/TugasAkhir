@@ -61,3 +61,13 @@ Koreksi akhir menggunakan dua struktur tampilan yang terpisah:
 
 Regresi frontend setelah koreksi akhir tetap lulus: 13 unit test, 0 gagal, dan build Vite berhasil dengan 1.894 modul.
 
+## Penguatan Pengalihan Mobile
+
+Tangkapan layar berikutnya menunjukkan tabel desktop masih dapat muncul akibat urutan selector responsif. Pengalihan kemudian diperkuat pada tiga lapisan:
+
+1. `window.matchMedia('(max-width: 820px)')` menentukan struktur aktif dan mengikuti perubahan orientasi/lebar layar.
+2. Atribut `hidden`, `aria-hidden`, serta inline `display` memastikan tabel desktop tidak terlihat pada mobile dan kartu tidak terlihat pada desktop.
+3. Selector penjaga menggunakan `display: none !important` untuk tabel desktop dan `display: grid !important` untuk kartu mobile.
+
+Dengan perlindungan ini, tampilan mobile tidak lagi bergantung pada urutan atau spesifisitas aturan tabel lama. Regresi tetap lulus 13/13 dan build produksi menghasilkan asset CSS/JS baru dengan hash berbeda.
+

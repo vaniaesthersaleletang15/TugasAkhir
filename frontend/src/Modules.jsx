@@ -491,7 +491,19 @@ export function ChecklistEditor({ user }) {
     [saving, setSaving] = useState(false),
     [submitting, setSubmitting] = useState(false),
     [note, setNote] = useState(null),
+    [mobileChecklist, setMobileChecklist] = useState(
+      () => window.matchMedia("(max-width: 820px)").matches,
+    ),
     readOnly = user?.role === "regional_manager";
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 820px)");
+    const synchronizeLayout = (event) => setMobileChecklist(event.matches);
+
+    setMobileChecklist(mediaQuery.matches);
+    mediaQuery.addEventListener("change", synchronizeLayout);
+
+    return () => mediaQuery.removeEventListener("change", synchronizeLayout);
+  }, []);
   useEffect(() => {
     (async () => {
       try {
@@ -985,7 +997,12 @@ export function ChecklistEditor({ user }) {
             )}
           </div>
         </header>
-        <div className="table-scroll checklist-desktop-table">
+        <div
+          className="table-scroll checklist-desktop-table"
+          hidden={mobileChecklist}
+          aria-hidden={mobileChecklist}
+          style={mobileChecklist ? { display: "none" } : undefined}
+        >
           <table>
             <colgroup>
               <col className="col-number" />
@@ -1099,7 +1116,12 @@ export function ChecklistEditor({ user }) {
             </tbody>
           </table>
         </div>
-        <div className="checklist-mobile-cards">
+        <div
+          className="checklist-mobile-cards"
+          hidden={!mobileChecklist}
+          aria-hidden={!mobileChecklist}
+          style={{ display: mobileChecklist ? "grid" : "none" }}
+        >
           {form.checklist.length === 0 && (
             <div className="checklist-mobile-empty">
               <strong>Item pemeriksaan belum berhasil dimuat.</strong>

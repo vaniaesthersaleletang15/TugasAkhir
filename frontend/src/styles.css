@@ -4839,6 +4839,22 @@ td small {
   }
 }
 
+/* Penjaga terakhir form checklist: selector ini sengaja diletakkan setelah
+   seluruh aturan tabel responsif agar tabel desktop tidak dapat muncul di HP. */
+@media (max-width: 820px) {
+  .professional-checklist .checklist-desktop-table {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .professional-checklist .checklist-mobile-cards:not([hidden]) {
+    display: grid !important;
+    visibility: visible !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
 /* Layout mobile umum untuk tabel operasional dan kontrol berukuran sentuh. */
 @media (max-width: 700px) {
   .topbar-brand {
