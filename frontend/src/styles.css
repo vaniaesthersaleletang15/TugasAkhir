@@ -4405,6 +4405,131 @@ td small {
     height: 22px;
   }
 
+  /* Item pemeriksaan menjadi kartu vertikal agar seluruh formulir langsung
+     terlihat dan dapat diisi tanpa tabel lebar pada ponsel. */
+  .professional-checklist .checklist-edit .table-scroll {
+    overflow: visible;
+    border-bottom: 0;
+  }
+
+  .professional-checklist .checklist-edit .table-scroll::after {
+    display: none;
+  }
+
+  .professional-checklist .checklist-edit table {
+    display: block;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .professional-checklist .checklist-edit thead {
+    display: none;
+  }
+
+  .professional-checklist .checklist-edit tbody,
+  .professional-checklist .checklist-edit tr,
+  .professional-checklist .checklist-edit td {
+    display: block;
+    width: 100%;
+  }
+
+  .professional-checklist .checklist-edit tbody {
+    padding: 10px;
+    background: #f4f7fa;
+  }
+
+  .professional-checklist .checklist-edit tbody tr {
+    overflow: hidden;
+    margin-bottom: 12px;
+    border: 1px solid #dce3eb;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(13, 31, 53, 0.05);
+  }
+
+  .professional-checklist .checklist-edit tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .professional-checklist .checklist-edit td[data-label] {
+    position: relative;
+    min-height: 46px;
+    padding: 13px 12px 13px 40%;
+    border-right: 0;
+    border-bottom: 1px solid #e7ebf0;
+    text-align: left;
+  }
+
+  .professional-checklist .checklist-edit td[data-label]::before {
+    content: attr(data-label);
+    position: absolute;
+    top: 14px;
+    left: 12px;
+    width: calc(36% - 12px);
+    color: #758396;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.35px;
+    text-transform: uppercase;
+  }
+
+  .professional-checklist .checklist-edit td[data-label="Pemeriksaan"] {
+    min-height: 0;
+    padding: 13px 12px;
+    background: #f9fafc;
+  }
+
+  .professional-checklist .checklist-edit td[data-label="Pemeriksaan"]::before {
+    position: static;
+    display: block;
+    width: auto;
+    margin-bottom: 5px;
+  }
+
+  .professional-checklist .checklist-edit td[data-label="Keterangan"] {
+    padding: 12px;
+  }
+
+  .professional-checklist .checklist-edit td[data-label="Keterangan"]::before {
+    position: static;
+    display: block;
+    width: auto;
+    margin-bottom: 7px;
+  }
+
+  .professional-checklist .checklist-edit td[data-label="Keterangan"] textarea {
+    min-height: 72px;
+    font-size: 16px;
+  }
+
+  .professional-checklist .checklist-edit td[rowspan],
+  .professional-checklist .checklist-edit .priority-cell,
+  .professional-checklist .checklist-edit .checkbox-cell {
+    text-align: left;
+  }
+
+  .professional-checklist .checklist-edit .checklist-empty-row td {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 8px;
+    padding: 22px 16px;
+    border: 0;
+    color: #526477;
+    text-align: center;
+  }
+
+  .professional-checklist .checklist-edit .checklist-empty-row strong {
+    color: #b01831;
+    font-size: 12px;
+  }
+
+  .professional-checklist .checklist-edit .checklist-empty-row span {
+    max-width: 420px;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
   .professional-checklist .checklist-status-table > div {
     min-height: 0;
   }

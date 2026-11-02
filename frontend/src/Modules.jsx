@@ -590,6 +590,12 @@ export function ChecklistEditor({ user }) {
             api.checklistTemplate(jenis),
             api.vehicles(),
           ]);
+          const templateItems = Array.isArray(r.data) ? r.data : [];
+          if (templateItems.length === 0) {
+            throw new Error(
+              "Item pemeriksaan tidak berhasil dimuat. Muat ulang halaman atau hubungi administrator.",
+            );
+          }
           setVehicles(vehicleResponse.data || []);
           const viewerName = user?.full_name || user?.email || "";
           setForm({
@@ -605,7 +611,7 @@ export function ChecklistEditor({ user }) {
               user?.role === "manager_hsse"
                 ? new Date().toISOString().slice(0, 10)
                 : "",
-            checklist: r.data.map((x) => ({
+            checklist: templateItems.map((x) => ({
               ...x,
               baik: false,
               tidak: false,
@@ -966,7 +972,9 @@ export function ChecklistEditor({ user }) {
           </div>
           <div className="inspection-progress-summary">
             <div>
-              <span>{completedItems} item diperiksa</span>
+              <span>
+                {completedItems} dari {form.checklist.length} item diperiksa
+              </span>
               <strong>{completionPercentage}%</strong>
             </div>
             <span className="inspection-progress-track">
@@ -1000,6 +1008,24 @@ export function ChecklistEditor({ user }) {
               </tr>
             </thead>
             <tbody>
+              {form.checklist.length === 0 && (
+                <tr className="checklist-empty-row">
+                  <td colSpan="7">
+                    <strong>Item pemeriksaan belum berhasil dimuat.</strong>
+                    <span>
+                      Periksa koneksi, lalu muat ulang halaman. Jika tetap
+                      kosong, hubungi administrator sistem.
+                    </span>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() => window.location.reload()}
+                    >
+                      Muat ulang halaman
+                    </button>
+                  </td>
+                </tr>
+              )}
               {form.checklist.map((x, i) => (
                 <tr key={i}>
                   {x.nomor && (

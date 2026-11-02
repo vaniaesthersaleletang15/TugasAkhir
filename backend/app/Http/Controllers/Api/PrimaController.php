@@ -539,8 +539,21 @@ class PrimaController extends Controller
         $this->requireRole($r, ['admin', 'hsse', 'manager_hsse', 'regional_manager']);
         $jenis = strtoupper($r->query('jenis', 'SPBU')) === 'INDUSTRI' ? 'INDUSTRI' : 'SPBU';
         $file = resource_path('checklists/'.strtolower($jenis).'.html');
+        if (! is_file($file) || ! is_readable($file)) {
+            report(new \RuntimeException("Template checklist {$jenis} tidak tersedia: {$file}"));
+
+            return $this->fail('Template item pemeriksaan tidak tersedia. Hubungi administrator sistem.', 500);
+        }
+
+        $html = file_get_contents($file);
+        if ($html === false || trim($html) === '') {
+            report(new \RuntimeException("Template checklist {$jenis} kosong: {$file}"));
+
+            return $this->fail('Template item pemeriksaan tidak dapat dibaca. Hubungi administrator sistem.', 500);
+        }
+
         $dom = new DOMDocument;
-        @$dom->loadHTML(file_get_contents($file), LIBXML_NOERROR | LIBXML_NOWARNING);
+        @$dom->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
         $xp = new DOMXPath($dom);
         $items = [];
         foreach ($xp->query('//table[@id="checklistTable"]//tbody/tr') as $row) {
@@ -552,6 +565,12 @@ class PrimaController extends Controller
             if ($name === '' || stripos($name, 'tanda tangan') !== false) {
                 continue;
             }$items[] = ['nama' => $name, 'pelaksana' => trim($c->item($o + 1)->textContent ?? ''), 'prioritas' => trim($c->item($o + 2)->textContent ?? ''), 'nomor' => $o ? trim($c->item(0)->textContent) : null, 'rowspan' => $o ? max(1, (int) ($c->item(0)->getAttribute('rowspan') ?: 1)) : 0];
+        }
+
+        if ($items === []) {
+            report(new \RuntimeException("Template checklist {$jenis} tidak menghasilkan item pemeriksaan: {$file}"));
+
+            return $this->fail('Item pemeriksaan tidak dapat dimuat. Hubungi administrator sistem.', 500);
         }
 
         return $this->ok('OK', $items);

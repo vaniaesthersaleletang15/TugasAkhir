@@ -179,9 +179,21 @@ class ChecklistLifecycleIntegrationTest extends TestCase
             ->assertJsonPath('data.0.nomor_polisi', 'DB 7272 QC');
 
         $this->app['auth']->forgetGuards();
-        $this->withToken($token)->getJson('/api/v1/checklists/template?jenis=SPBU')
+        $templateResponse = $this->withToken($token)->getJson('/api/v1/checklists/template?jenis=SPBU')
             ->assertOk()
-            ->assertJsonPath('success', true);
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(25, 'data')
+            ->assertJsonStructure([
+                'data' => [[
+                    'nama',
+                    'pelaksana',
+                    'prioritas',
+                    'nomor',
+                    'rowspan',
+                ]],
+            ]);
+
+        $this->assertNotEmpty($templateResponse->json('data.0.nama'));
 
         $this->app['auth']->forgetGuards();
         $this->withToken($token)->getJson('/api/v1/transporters')
