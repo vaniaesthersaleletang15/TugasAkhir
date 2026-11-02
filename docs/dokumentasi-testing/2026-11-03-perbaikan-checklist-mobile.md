@@ -77,3 +77,17 @@ Screenshot pengguna masih memperlihatkan teks versi lama `0 item diperiksa`, sed
 
 Deteksi mobile kemudian diperluas dari lebar viewport menjadi `(max-width: 820px), (pointer: coarse)` agar mode kartu tetap digunakan ketika browser ponsel memakai mode situs desktop. Label **Mode ponsel aktif** ditambahkan pada header sebagai indikator yang dapat diverifikasi langsung. Unit test tetap lulus 13/13 dan build produksi berhasil.
 
+## Temuan Lingkungan Localhost
+
+Pengguna ternyata membuka `http://localhost:8092`, sedangkan deployment sebelumnya hanya memperbarui VPS. Audit Docker lokal menemukan container `prima-regional-frontend-1` masih menggunakan image berumur delapan hari. Frontend lokal kemudian dibangun ulang dan container frontend saja dibuat ulang tanpa menyentuh PostgreSQL maupun data lokal.
+
+Verifikasi localhost setelah rebuild:
+
+```text
+HTTP 200
+Asset JavaScript: index-BWLctCOA.js
+Label Mode ponsel aktif: tersedia
+Deteksi pointer coarse: tersedia
+Cache-Control: no-cache
+```
+
