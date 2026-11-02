@@ -44,3 +44,35 @@ Perbaikan mengatur redirect tamu untuk path `api/*` menjadi `null`, sehingga `Au
 LocalizedApiResponseTest: 5 passed (17 assertions)
 Seluruh backend: 223 passed (673 assertions)
 ```
+# Hasil Akhir Deployment dan Smoke Test
+
+Deployment aplikasi ke VPS Hostinger telah berhasil diselesaikan pada 3 November 2026. Aplikasi sementara dapat diakses melalui `https://ekim.179-197-254-89.sslip.io` sambil menunggu domain permanen.
+
+Hasil verifikasi akhir:
+
+- Enam container utama berjalan: frontend, backend, queue, scheduler, PostgreSQL, dan Caddy.
+- Health check backend dan PostgreSQL berstatus sehat.
+- Seluruh 12 migrasi database berstatus `Ran`.
+- HTTP dialihkan ke HTTPS dengan status 308 dan halaman utama HTTPS merespons 200.
+- Sertifikat HTTPS Let's Encrypt berhasil diterbitkan dan tervalidasi.
+- Endpoint terminal publik merespons 200 dalam sekitar 0,22 detik.
+- Endpoint terlindungi tanpa sesi merespons 401 JSON berbahasa Indonesia, bukan error 500.
+- Header keamanan CSP, HSTS, X-Content-Type-Options, X-Frame-Options, Permissions-Policy, dan Referrer-Policy tersedia.
+- Pengujian backend lulus: 223 pengujian dengan 673 assertion.
+- Backup awal database berhasil dibuat di `storage/app/private/backups/prima-db-2026-11-03.dump` dan tetap tersedia setelah container dibuat ulang.
+- Tidak ditemukan log baru dengan level ERROR, CRITICAL, atau EMERGENCY setelah deployment akhir.
+
+## Temuan Saat Deployment
+
+1. Backend sempat tidak sehat karena direktori `backend/resources/views` tidak tersedia pada image. Direktori tersebut kemudian dipertahankan melalui `.gitignore` dan image dibangun ulang.
+2. Permintaan endpoint API terlindungi tanpa header `Accept: application/json` sempat menghasilkan error 500 karena framework mencari route `login`. Redirect guest API diperbaiki dan dilindungi dengan regression test; hasil akhirnya adalah respons 401 JSON berbahasa Indonesia.
+
+## Status Kesiapan
+
+Lingkungan ini siap digunakan untuk smoke test lanjutan dan UAT. Sebelum dinyatakan sebagai produksi final, masih diperlukan:
+
+- pemasangan domain permanen dan penerbitan ulang sertifikat untuk domain tersebut;
+- penggantian Cloudflare Turnstile testing key dengan key untuk domain produksi;
+- konfigurasi SMTP produksi melalui pengaturan sistem;
+- penyimpanan backup di lokasi terpisah dari VPS;
+- pelaksanaan UAT dan verifikasi manual alur login untuk seluruh role.
