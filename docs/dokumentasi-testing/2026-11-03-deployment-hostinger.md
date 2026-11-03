@@ -73,6 +73,10 @@ Lingkungan ini siap digunakan untuk smoke test lanjutan dan UAT. Sebelum dinyata
 
 - pemasangan domain permanen dan penerbitan ulang sertifikat untuk domain tersebut;
 - penggantian Cloudflare Turnstile testing key dengan key untuk domain produksi;
+
+## Penyesuaian akun SPV HSSE
+
+Email login akun SPV HSSE pada hosting diubah menjadi `spvhsse@gmail.com`. Perubahan diverifikasi pada database dan `PRIMA_ADMIN_EMAIL` di `.env` produksi. Akun tetap berstatus aktif, password tidak berubah, serta file kredensial awal diperbaiki agar menggunakan label `email` sesuai kontrak endpoint login.
 - konfigurasi SMTP produksi melalui pengaturan sistem;
 - penyimpanan backup di lokasi terpisah dari VPS;
 - pelaksanaan UAT dan verifikasi manual alur login untuk seluruh role.

@@ -77,7 +77,7 @@ cat > "$CREDENTIAL_FILE" <<EOF
 URL=https://$DOMAIN
 
 SPV HSSE / Administrator Sistem
-username=admin
+email=$ACME_EMAIL
 password=$ADMIN_PASSWORD
 
 Integrated Terminal Manager
