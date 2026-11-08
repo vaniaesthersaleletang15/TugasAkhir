@@ -68,7 +68,10 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ steps.owner.outputs.value }}/prima-${{ matrix.name }}
+          # Gunakan namespace package khusus repository ini. Package lama
+          # `prima-*` dimiliki konfigurasi repository lain sehingga GITHUB_TOKEN
+          # repository ini tidak memiliki write access terhadap package tersebut.
+          images: ghcr.io/${{ steps.owner.outputs.value }}/tugasakhir-prima-${{ matrix.name }}
           # Tag SHA bersifat immutable dan dipakai saat deploy/rollback.
           # "latest" hanya diperbarui untuk main atau redeploy manual.
           tags: |
