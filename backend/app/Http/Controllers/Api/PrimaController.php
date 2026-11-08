@@ -441,8 +441,42 @@ class PrimaController extends Controller
         } elseif ($r->user()->terminal_id) {
             $query->where('terminal_id', $r->user()->terminal_id);
         }
+        if ($search = trim((string) $r->query('search', ''))) {
+            $query->where(fn ($item) => $item
+                ->where('nomor_polisi', 'ilike', "%{$search}%")
+                ->orWhere('nama_transport', 'ilike', "%{$search}%")
+                ->orWhere('nomor_urut', 'ilike', "%{$search}%"));
+        }
+        if ($r->filled('dateFrom')) {
+            $query->whereDate('tanggal_pemeriksaan', '>=', $r->date('dateFrom')->toDateString());
+        }
+        if ($r->filled('dateTo')) {
+            $query->whereDate('tanggal_pemeriksaan', '<=', $r->date('dateTo')->toDateString());
+        }
+        if (in_array($r->query('jenis'), ['SPBU', 'INDUSTRI'], true)) {
+            $query->where('jenis_kendaraan', $r->query('jenis'));
+        }
+        if ($r->query('status') === 'pending') {
+            $query->whereIn('status_approval', ['pending_hsse', 'signed_hsse']);
+        } elseif (in_array($r->query('status'), self::STATES, true)) {
+            $query->where('status_approval', $r->query('status'));
+        }
+        if ($r->filled('transporter_id')) {
+            $query->whereExists(fn ($sub) => $sub->from('kendaraan as kv')
+                ->whereColumn('kv.nomor_polisi', 'formulir_checklist.nomor_polisi')
+                ->where('kv.transporter_id', $r->integer('transporter_id')));
+        }
 
-        return $this->ok('OK', ['total' => (clone $query)->count(), 'spbu' => (clone $query)->whereRaw('UPPER(jenis_kendaraan)=?', ['SPBU'])->count(), 'industri' => (clone $query)->whereRaw('UPPER(jenis_kendaraan)=?', ['INDUSTRI'])->count(), 'bulan_ini' => (clone $query)->whereBetween('tanggal_pemeriksaan', [$start, $end])->count(), 'kim_kedaluwarsa' => (clone $query)->whereNotNull('ekim_valid_until')->whereDate('ekim_valid_until', '<', today())->count()]);
+        return $this->ok('OK', [
+            'total' => (clone $query)->count(),
+            'spbu' => (clone $query)->whereRaw('UPPER(jenis_kendaraan)=?', ['SPBU'])->count(),
+            'industri' => (clone $query)->whereRaw('UPPER(jenis_kendaraan)=?', ['INDUSTRI'])->count(),
+            'bulan_ini' => (clone $query)->whereBetween('tanggal_pemeriksaan', [$start, $end])->count(),
+            'pending' => (clone $query)->whereIn('status_approval', ['pending_hsse', 'signed_hsse'])->count(),
+            'approved' => (clone $query)->where('status_approval', 'approved')->count(),
+            'rejected' => (clone $query)->where('status_approval', 'rejected')->count(),
+            'kim_kedaluwarsa' => (clone $query)->whereNotNull('ekim_valid_until')->whereDate('ekim_valid_until', '<', today())->count(),
+        ]);
     }
 
     public function vehicles(Request $r, ChecklistComplianceService $compliance): JsonResponse
@@ -590,7 +624,9 @@ class PrimaController extends Controller
         }
         if (in_array($r->query('jenis'), ['SPBU', 'INDUSTRI'], true)) {
             $q->where('f.jenis_kendaraan', $r->query('jenis'));
-        } if (in_array($r->query('status'), self::STATES, true)) {
+        } if ($r->query('status') === 'pending') {
+            $q->whereIn('f.status_approval', ['pending_hsse', 'signed_hsse']);
+        } elseif (in_array($r->query('status'), self::STATES, true)) {
             $q->where('f.status_approval', $r->query('status'));
         }
         if ($r->filled('transporter_id')) {
