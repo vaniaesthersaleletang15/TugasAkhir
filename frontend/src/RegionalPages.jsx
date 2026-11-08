@@ -322,9 +322,9 @@ export function RegionalEkimPage() {
         </button>
       </form>
       {state.loading ? (
-        <Loading />
+        <LoadingState />
       ) : state.error ? (
-        <ErrorBox error={state.error} retry={state.reload} />
+        <ErrorState message={state.error} retry={state.reload} />
       ) : (
         <section className="panel">
           <div className="table-scroll">
@@ -458,9 +458,9 @@ export function RegionalReportPage() {
         <button className="button primary">Tampilkan</button>
       </form>
       {state.loading ? (
-        <Loading />
+        <LoadingState />
       ) : state.error ? (
-        <ErrorBox error={state.error} retry={state.reload} />
+        <ErrorState message={state.error} retry={state.reload} />
       ) : (
         <>
           <section className="panel regional-trend">
@@ -590,9 +590,9 @@ export function RegionalAuditPage() {
         </button>
       </form>
       {state.loading ? (
-        <Loading />
+        <LoadingState />
       ) : state.error ? (
-        <ErrorBox error={state.error} retry={state.reload} />
+        <ErrorState message={state.error} retry={state.reload} />
       ) : (
         <section className="panel">
           <div className="table-scroll">
@@ -837,9 +837,9 @@ export function RegionalSpvPage() {
         </section>
       )}
       {state.loading ? (
-        <Loading />
+        <LoadingState />
       ) : state.error ? (
-        <ErrorBox error={state.error} retry={state.reload} />
+        <ErrorState message={state.error} retry={state.reload} />
       ) : (
         <section className="panel">
           <div className="table-scroll">
