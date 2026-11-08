@@ -445,8 +445,13 @@ export function RestorePage({ user }) {
 }
 
 export function RegionalDocumentsPage() {
-  const [filters, setFilters] = useState({ terminal_id: "", search: "" });
+  const [filters, setFilters] = useState({
+    terminal_id: "",
+    transporter_id: "",
+    search: "",
+  });
   const [terminals, setTerminals] = useState([]);
+  const [transporters, setTransporters] = useState([]);
   const [state, setState] = useState({ loading: true, rows: [], error: "" });
   const load = async () => {
     try {
@@ -463,6 +468,12 @@ export function RegionalDocumentsPage() {
   useEffect(() => {
     load();
   }, []);
+  useEffect(() => {
+    api
+      .filterTransporters(filters.terminal_id)
+      .then((response) => setTransporters(response.data || []))
+      .catch(() => setTransporters([]));
+  }, [filters.terminal_id]);
   return (
     <main className="page">
       <div className="page-heading">
@@ -482,13 +493,30 @@ export function RegionalDocumentsPage() {
         <select
           value={filters.terminal_id}
           onChange={(e) =>
-            setFilters({ ...filters, terminal_id: e.target.value })
+            setFilters({
+              ...filters,
+              terminal_id: e.target.value,
+              transporter_id: "",
+            })
           }
         >
           <option value="">Semua terminal</option>
           {terminals.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={filters.transporter_id}
+          onChange={(e) =>
+            setFilters({ ...filters, transporter_id: e.target.value })
+          }
+        >
+          <option value="">Semua transportir</option>
+          {transporters.map((transporter) => (
+            <option key={transporter.id} value={transporter.id}>
+              {transporter.name}
             </option>
           ))}
         </select>
@@ -515,6 +543,7 @@ export function RegionalDocumentsPage() {
                   <th>Jenis</th>
                   <th>Kelengkapan</th>
                   <th>Status</th>
+                  <th>Dokumen disetujui</th>
                 </tr>
               </thead>
               <tbody>
@@ -529,6 +558,28 @@ export function RegionalDocumentsPage() {
                     </td>
                     <td data-label="Status">
                       {r.is_complete ? "Lengkap" : "Belum lengkap"}
+                    </td>
+                    <td data-label="Dokumen disetujui">
+                      {(r.approved_documents || []).length ? (
+                        <div className="row-buttons">
+                          {r.approved_documents.map((document) => (
+                            <button
+                              type="button"
+                              key={document.id}
+                              onClick={() =>
+                                api.openRegionalDocument(
+                                  document.id,
+                                  document.nama_file_asli,
+                                )
+                              }
+                            >
+                              {document.jenis_dokumen}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                   </tr>
                 ))}

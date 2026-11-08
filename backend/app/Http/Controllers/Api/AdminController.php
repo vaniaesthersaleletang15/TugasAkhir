@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\DatabaseBackupService;
 use App\Services\ProcessRunService;
 use App\Services\RetentionService;
+use App\Services\SystemMailer;
 use App\Services\VehicleHistoryService;
 use App\Support\SimpleXlsx;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -517,7 +519,8 @@ class AdminController extends Controller
         $smtpReady = filled($this->setting('smtp_host'))
             && filled($this->setting('smtp_port'))
             && filled($this->setting('smtp_from_email'))
-            && (blank($smtpUsername) || filled($this->setting('smtp_password')));
+            && (blank($smtpUsername) || filled($this->setting('smtp_password')))
+            && filled($this->setting('smtp_verified_at'));
 
         $driver = DB::connection()->getDriverName();
 
@@ -726,12 +729,15 @@ class AdminController extends Controller
         }
 
         $credentialsReady = blank($cfg['smtp_username'] ?? null) || filled($this->setting('smtp_password'));
-        $smtpReady = collect(['smtp_host', 'smtp_port', 'smtp_from_email'])->every(fn ($key) => filled($cfg[$key] ?? null)) && $credentialsReady;
+        $verifiedAt = $this->setting('smtp_verified_at');
+        $smtpReady = collect(['smtp_host', 'smtp_port', 'smtp_from_email'])->every(fn ($key) => filled($cfg[$key] ?? null))
+            && $credentialsReady
+            && filled($verifiedAt);
 
-        return $this->ok('OK', ['config' => $cfg, 'smtp_ready' => $smtpReady, 'history' => DB::table('kim_notifications as n')->leftJoin('users as u', 'u.id', '=', 'n.sent_by')->select('n.*', 'u.full_name as sender_name')->latest('n.sent_at')->limit(100)->get(), 'cron_url' => url('/api/v1/scheduler/run/'.$this->cronSecret()), 'cron_last_run' => $this->setting('cron_last_run'), 'cron_last_status' => $this->setting('cron_last_status')]);
+        return $this->ok('OK', ['config' => $cfg, 'smtp_ready' => $smtpReady, 'smtp_verified_at' => $verifiedAt, 'smtp_last_error' => $this->setting('smtp_last_error'), 'history' => DB::table('kim_notifications as n')->leftJoin('users as u', 'u.id', '=', 'n.sent_by')->select('n.*', 'u.full_name as sender_name')->latest('n.sent_at')->limit(100)->get(), 'cron_url' => url('/api/v1/scheduler/run/'.$this->cronSecret()), 'cron_last_run' => $this->setting('cron_last_run'), 'cron_last_status' => $this->setting('cron_last_status')]);
     }
 
-    public function saveNotifications(Request $r): JsonResponse
+    public function saveNotifications(Request $r, SystemMailer $mailer): JsonResponse
     {
         $this->admin($r);
         $validated = $r->validate([
@@ -748,16 +754,46 @@ class AdminController extends Controller
         if ($username !== '' && blank($validated['smtp_password'] ?? null) && blank($this->setting('smtp_password'))) {
             return $this->fail('Password SMTP wajib diisi jika akun SMTP digunakan.');
         }
-        foreach (['smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_username', 'smtp_from_email', 'smtp_from_name', 'notif_days_threshold'] as $k) {
-            $this->setSetting($k, $validated[$k] ?? '');
-        }if (filled($validated['smtp_password'] ?? null)) {
-            $this->setSetting('smtp_password', encrypt($validated['smtp_password']));
-        } elseif ($username === '') {
-            DB::table('system_settings')->where('setting_key', 'smtp_password')->delete();
+
+        $encryptedPassword = filled($validated['smtp_password'] ?? null)
+            ? encrypt($validated['smtp_password'])
+            : ($username !== '' ? $this->setting('smtp_password') : null);
+        $candidate = collect($validated)
+            ->except('smtp_password')
+            ->put('smtp_password', $encryptedPassword);
+
+        try {
+            $mailer->verifyConnection($candidate);
+        } catch (\Throwable $exception) {
+            $message = str_contains(strtolower((string) $validated['smtp_host']), 'gmail')
+                ? 'Autentikasi SMTP Gmail gagal. Gunakan Google App Password 16 karakter, bukan password akun Gmail.'
+                : 'Koneksi atau autentikasi SMTP gagal. Periksa host, port, enkripsi, akun, dan password SMTP.';
+            $this->setSetting('smtp_verified_at', '');
+            $this->setSetting('smtp_last_error', $message);
+            Log::warning('Verifikasi SMTP gagal saat menyimpan konfigurasi notifikasi.', [
+                'exception' => $exception::class,
+                'host' => $validated['smtp_host'],
+                'port' => $validated['smtp_port'],
+            ]);
+
+            return $this->fail($message, 422);
         }
+
+        DB::transaction(function () use ($validated, $username, $encryptedPassword): void {
+            foreach (['smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_username', 'smtp_from_email', 'smtp_from_name', 'notif_days_threshold'] as $key) {
+                $this->setSetting($key, $validated[$key] ?? '');
+            }
+            if ($username !== '') {
+                $this->setSetting('smtp_password', $encryptedPassword);
+            } else {
+                DB::table('system_settings')->where('setting_key', 'smtp_password')->delete();
+            }
+            $this->setSetting('smtp_verified_at', now()->toIso8601String());
+            $this->setSetting('smtp_last_error', '');
+        });
         $this->audit($r, 'NOTIFICATION_SETTINGS', 'Konfigurasi SMTP dan ambang notifikasi diperbarui');
 
-        return $this->ok('Konfigurasi notifikasi berhasil disimpan.');
+        return $this->ok('Konfigurasi SMTP berhasil diverifikasi dan disimpan.');
     }
 
     private function cronSecret(): string
@@ -1037,7 +1073,9 @@ class AdminController extends Controller
         if (in_array($r->query('jenis'), ['SPBU', 'INDUSTRI'], true)) {
             $query->where('f.jenis_kendaraan', $r->query('jenis'));
         }
-        if (in_array($r->query('status'), ['draft', 'pending_hsse', 'signed_hsse', 'approved', 'rejected'], true)) {
+        if ($r->query('status') === 'pending') {
+            $query->whereIn('f.status_approval', ['pending_hsse', 'signed_hsse']);
+        } elseif (in_array($r->query('status'), ['draft', 'pending_hsse', 'signed_hsse', 'approved', 'rejected'], true)) {
             $query->where('f.status_approval', $r->query('status'));
         }
         $rows = $query->orderByDesc('f.tanggal_pemeriksaan')->get(['f.id', 't.name as terminal_name', 'f.jenis_kendaraan', 'f.nomor_polisi', 'f.nama_transport', 'f.tanggal_pemeriksaan', 'f.ekim_valid_until', 'f.status_approval'])->map(fn ($x) => [$x->id, $x->terminal_name, $x->jenis_kendaraan, $x->nomor_polisi, $x->nama_transport, $x->tanggal_pemeriksaan, $x->ekim_valid_until, $x->status_approval]);

@@ -97,6 +97,8 @@ export const api = {
     json(`/regional/spvs/${id}/reset-password`, { password }),
   regionalDashboard: (params = {}) =>
     request(`/regional/dashboard?${new URLSearchParams(params)}`),
+  regionalVehicles: (params = {}) =>
+    request(`/regional/vehicles?${new URLSearchParams(params)}`),
   regionalEkim: (params = {}) =>
     request(`/regional/ekim?${new URLSearchParams(params)}`),
   regionalReport: (params = {}) =>
@@ -105,6 +107,8 @@ export const api = {
     request(`/regional/audits?${new URLSearchParams(params)}`),
   regionalDocuments: (params = {}) =>
     request(`/regional/documents?${new URLSearchParams(params)}`),
+  openRegionalDocument: (id, filename) =>
+    download(`/regional/documents/${id}/download`, filename),
   ekimNotifications: () => request("/my-ekim-notifications"),
   readEkimNotifications: (id = null) =>
     json("/my-ekim-notifications/read", id ? { id } : {}),

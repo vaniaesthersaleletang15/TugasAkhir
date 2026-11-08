@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use RuntimeException;
 
 class SystemMailer
 {
@@ -60,5 +61,30 @@ class SystemMailer
         Mail::purge('smtp');
 
         return true;
+    }
+
+    /**
+     * Membuka koneksi SMTP dan menyelesaikan autentikasi tanpa mengirim email.
+     * Exception dari transport sengaja diteruskan agar konfigurasi yang tidak
+     * valid tidak disimpan sebagai konfigurasi siap pakai.
+     */
+    public function verifyConnection(Collection|array|null $settings = null): void
+    {
+        if (! $this->configure($settings)) {
+            throw new RuntimeException('Konfigurasi SMTP belum lengkap.');
+        }
+
+        $transport = Mail::mailer('smtp')->getSymfonyTransport();
+        if (! method_exists($transport, 'start')) {
+            throw new RuntimeException('Transport SMTP tidak mendukung pemeriksaan koneksi.');
+        }
+
+        try {
+            $transport->start();
+        } finally {
+            if (method_exists($transport, 'stop')) {
+                $transport->stop();
+            }
+        }
     }
 }

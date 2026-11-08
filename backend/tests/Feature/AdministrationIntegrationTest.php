@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\SystemMailer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -197,6 +198,9 @@ class AdministrationIntegrationTest extends TestCase
     {
         $admin = $this->user('admin', 'smtp_admin');
         $token = $this->token($admin);
+        $this->mock(SystemMailer::class, function ($mock): void {
+            $mock->shouldReceive('verifyConnection')->once();
+        });
 
         $this->withToken($token)->putJson('/api/v1/notifications', [
             'smtp_host' => 'smtp.example.test',
@@ -212,12 +216,51 @@ class AdministrationIntegrationTest extends TestCase
         $encrypted = DB::table('system_settings')->where('setting_key', 'smtp_password')->value('setting_value');
         $this->assertNotSame('smtp-secret', $encrypted);
         $this->assertSame('smtp-secret', decrypt($encrypted));
+        $this->assertDatabaseHas('system_settings', ['setting_key' => 'smtp_last_error', 'setting_value' => '']);
+        $this->assertNotEmpty(DB::table('system_settings')->where('setting_key', 'smtp_verified_at')->value('setting_value'));
 
         $this->app['auth']->forgetGuards();
         $response = $this->withToken($token)->getJson('/api/v1/notifications')
             ->assertOk()
             ->assertJsonPath('data.smtp_ready', true);
         $this->assertArrayNotHasKey('smtp_password', $response->json('data.config'));
+    }
+
+    public function test_invalid_smtp_credentials_are_rejected_without_replacing_active_configuration(): void
+    {
+        $admin = $this->user('admin', 'smtp_invalid_admin');
+        $token = $this->token($admin);
+        DB::table('system_settings')->updateOrInsert(
+            ['setting_key' => 'smtp_host'],
+            ['setting_value' => 'smtp.previous.test', 'updated_at' => now()],
+        );
+        $this->mock(SystemMailer::class, function ($mock): void {
+            $mock->shouldReceive('verifyConnection')
+                ->once()
+                ->andThrow(new \RuntimeException('535 BadCredentials'));
+        });
+
+        $this->withToken($token)->putJson('/api/v1/notifications', [
+            'smtp_host' => 'smtp.gmail.com',
+            'smtp_port' => 587,
+            'smtp_encryption' => 'tls',
+            'smtp_username' => 'mailer@example.test',
+            'smtp_from_email' => 'prima@example.test',
+            'smtp_from_name' => 'PRIMA',
+            'smtp_password' => 'invalid-secret',
+            'notif_days_threshold' => 30,
+        ])->assertStatus(422)
+            ->assertJsonPath('message', 'Autentikasi SMTP Gmail gagal. Gunakan Google App Password 16 karakter, bukan password akun Gmail.');
+
+        $this->assertDatabaseHas('system_settings', [
+            'setting_key' => 'smtp_host',
+            'setting_value' => 'smtp.previous.test',
+        ]);
+        $this->assertDatabaseMissing('system_settings', ['setting_value' => 'invalid-secret']);
+        $this->assertDatabaseHas('system_settings', [
+            'setting_key' => 'smtp_verified_at',
+            'setting_value' => '',
+        ]);
     }
 
     public function test_cron_secret_regeneration_invalidates_previous_secret(): void

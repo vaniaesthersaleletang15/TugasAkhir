@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   BarChart3,
@@ -59,15 +59,30 @@ function TerminalFilter({ terminals, value, onChange }) {
 }
 
 function useRegionalData(loader, parameters) {
-  const [state, setState] = useState({ loading: true, data: null, error: "" });
+  const [state, setState] = useState({
+    loading: true,
+    data: null,
+    pagination: null,
+    error: "",
+  });
   const serialized = JSON.stringify(parameters);
   const load = useCallback(async () => {
     setState((current) => ({ ...current, loading: true, error: "" }));
     try {
       const response = await loader(parameters);
-      setState({ loading: false, data: response.data, error: "" });
+      setState({
+        loading: false,
+        data: response.data,
+        pagination: response.pagination || null,
+        error: "",
+      });
     } catch (error) {
-      setState({ loading: false, data: null, error: error.message });
+      setState({
+        loading: false,
+        data: null,
+        pagination: null,
+        error: error.message,
+      });
     }
   }, [loader, serialized]);
   useEffect(() => {
@@ -89,10 +104,16 @@ function useTerminals() {
 
 export function RegionalDashboard({ user }) {
   const terminals = useTerminals();
-  const [terminalId, setTerminalId] = useState("");
+  const [filters, setFilters] = useState({
+    terminal_id: "",
+    date_from: "",
+    date_to: "",
+  });
+  const [applied, setApplied] = useState(filters);
   const params = useMemo(
-    () => (terminalId ? { terminal_id: terminalId } : {}),
-    [terminalId],
+    () =>
+      Object.fromEntries(Object.entries(applied).filter(([, value]) => value)),
+    [applied],
   );
   const state = useRegionalData(api.regionalDashboard, params);
   if (state.loading && !state.data)
@@ -106,12 +127,49 @@ export function RegionalDashboard({ user }) {
     ...comparison.map((row) => Number(row.checklists) || 0),
   );
   const cards = [
-    ["Integrated Terminal", summary.terminals, Building2, "navy"],
-    ["Total kendaraan", summary.vehicles, Truck, "blue"],
-    ["Total checklist", summary.checklists, Database, "slate"],
-    ["Menunggu proses", summary.pending, ClipboardList, "amber"],
-    ["Checklist disetujui", summary.approved, CheckCircle2, "green"],
-    ["E-KIM kedaluwarsa", summary.ekim_expired, AlertTriangle, "red"],
+    ["Integrated Terminal", summary.terminals, Building2, "navy", null],
+    [
+      "Total kendaraan",
+      summary.vehicles,
+      Truck,
+      "blue",
+      `/regional/vehicles?${new URLSearchParams({ terminal_id: applied.terminal_id })}`,
+    ],
+    [
+      "Total checklist",
+      summary.checklists,
+      Database,
+      "slate",
+      `/checklists?${new URLSearchParams({ terminal_id: applied.terminal_id, dateFrom: applied.date_from, dateTo: applied.date_to })}`,
+    ],
+    [
+      "Menunggu proses",
+      summary.pending,
+      ClipboardList,
+      "amber",
+      `/checklists?${new URLSearchParams({ terminal_id: applied.terminal_id, dateFrom: applied.date_from, dateTo: applied.date_to, status: "pending" })}`,
+    ],
+    [
+      "Checklist disetujui",
+      summary.approved,
+      CheckCircle2,
+      "green",
+      `/checklists?${new URLSearchParams({ terminal_id: applied.terminal_id, dateFrom: applied.date_from, dateTo: applied.date_to, status: "approved" })}`,
+    ],
+    [
+      "Checklist ditolak",
+      summary.rejected,
+      AlertTriangle,
+      "red",
+      `/checklists?${new URLSearchParams({ terminal_id: applied.terminal_id, dateFrom: applied.date_from, dateTo: applied.date_to, status: "rejected" })}`,
+    ],
+    [
+      "E-KIM kedaluwarsa",
+      summary.ekim_expired,
+      AlertTriangle,
+      "red",
+      `/regional/ekim?${new URLSearchParams({ terminal_id: applied.terminal_id, status: "expired" })}`,
+    ],
   ];
   return (
     <main className="page regional-page">
@@ -121,9 +179,32 @@ export function RegionalDashboard({ user }) {
       >
         <TerminalFilter
           terminals={terminals}
-          value={terminalId}
-          onChange={setTerminalId}
+          value={filters.terminal_id}
+          onChange={(value) => setFilters({ ...filters, terminal_id: value })}
         />
+        <label>
+          Dari tanggal
+          <input
+            type="date"
+            value={filters.date_from}
+            onChange={(event) =>
+              setFilters({ ...filters, date_from: event.target.value })
+            }
+          />
+        </label>
+        <label>
+          Sampai tanggal
+          <input
+            type="date"
+            value={filters.date_to}
+            onChange={(event) =>
+              setFilters({ ...filters, date_to: event.target.value })
+            }
+          />
+        </label>
+        <button className="button primary" onClick={() => setApplied(filters)}>
+          Terapkan
+        </button>
         <button className="button secondary" onClick={state.reload}>
           <RefreshCw size={16} />
           Perbarui
@@ -137,17 +218,28 @@ export function RegionalDashboard({ user }) {
         </span>
       </div>
       <section className="metric-grid regional-metrics">
-        {cards.map(([label, value, Icon, tone]) => (
-          <article className={`metric-card ${tone}`} key={label}>
-            <div className="metric-icon">
-              <Icon />
-            </div>
-            <div>
-              <strong>{value ?? 0}</strong>
-              <span>{label}</span>
-            </div>
-          </article>
-        ))}
+        {cards.map(([label, value, Icon, tone, to]) => {
+          const content = (
+            <>
+              <div className="metric-icon">
+                <Icon />
+              </div>
+              <div>
+                <strong>{value ?? 0}</strong>
+                <span>{label}</span>
+              </div>
+            </>
+          );
+          return to ? (
+            <Link className={`metric-card ${tone}`} key={label} to={to}>
+              {content}
+            </Link>
+          ) : (
+            <article className={`metric-card ${tone}`} key={label}>
+              {content}
+            </article>
+          );
+        })}
       </section>
       <section className="regional-grid">
         <article className="panel regional-comparison">
@@ -187,15 +279,23 @@ export function RegionalDashboard({ user }) {
             <ShieldCheck />
           </div>
           <div className="ekim-status-cards">
-            <Link to="/regional/ekim?status=active">
+            <Link
+              to={`/regional/ekim?${new URLSearchParams({ terminal_id: applied.terminal_id, status: "active" })}`}
+            >
               <strong>{summary.ekim_active || 0}</strong>
               <span>Aktif</span>
             </Link>
-            <Link to="/regional/ekim?status=expiring" className="warning">
+            <Link
+              to={`/regional/ekim?${new URLSearchParams({ terminal_id: applied.terminal_id, status: "expiring" })}`}
+              className="warning"
+            >
               <strong>{summary.ekim_expiring || 0}</strong>
               <span>Akan berakhir</span>
             </Link>
-            <Link to="/regional/ekim?status=expired" className="danger">
+            <Link
+              to={`/regional/ekim?${new URLSearchParams({ terminal_id: applied.terminal_id, status: "expired" })}`}
+              className="danger"
+            >
               <strong>{summary.ekim_expired || 0}</strong>
               <span>Kedaluwarsa</span>
             </Link>
@@ -216,8 +316,13 @@ export function RegionalDashboard({ user }) {
                 <th>Terminal</th>
                 <th>Kendaraan</th>
                 <th>Checklist</th>
+                <th>Pending</th>
                 <th>Disetujui</th>
+                <th>Ditolak</th>
+                <th>E-KIM aktif</th>
+                <th>Akan berakhir</th>
                 <th>E-KIM kedaluwarsa</th>
+                <th>Drill-down</th>
               </tr>
             </thead>
             <tbody>
@@ -232,8 +337,24 @@ export function RegionalDashboard({ user }) {
                   </td>
                   <td data-label="Kendaraan">{row.vehicles}</td>
                   <td data-label="Checklist">{row.checklists}</td>
+                  <td data-label="Pending">{row.pending}</td>
                   <td data-label="Disetujui">{row.approved}</td>
+                  <td data-label="Ditolak">{row.rejected}</td>
+                  <td data-label="E-KIM aktif">{row.ekim_active}</td>
+                  <td data-label="Akan berakhir">{row.ekim_expiring}</td>
                   <td data-label="E-KIM kedaluwarsa">{row.expired}</td>
+                  <td data-label="Drill-down">
+                    <div className="row-buttons">
+                      <Link to={`/regional/vehicles?terminal_id=${row.id}`}>
+                        Kendaraan
+                      </Link>
+                      <Link
+                        to={`/checklists?${new URLSearchParams({ terminal_id: row.id, dateFrom: applied.date_from, dateTo: applied.date_to })}`}
+                      >
+                        Checklist
+                      </Link>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -244,15 +365,309 @@ export function RegionalDashboard({ user }) {
   );
 }
 
+export function RegionalVehiclesPage() {
+  const terminals = useTerminals();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialFilters = {
+    terminal_id: searchParams.get("terminal_id") || "",
+    transporter_id: searchParams.get("transporter_id") || "",
+    search: searchParams.get("search") || "",
+    jenis: searchParams.get("jenis") || "",
+    status: searchParams.get("status") || "",
+    page: Number(searchParams.get("page")) || 1,
+    limit: 25,
+  };
+  const [transporters, setTransporters] = useState([]);
+  const [filters, setFilters] = useState(initialFilters);
+  const [applied, setApplied] = useState(initialFilters);
+  const state = useRegionalData(api.regionalVehicles, applied);
+  useEffect(() => {
+    api
+      .filterTransporters(filters.terminal_id)
+      .then((response) => setTransporters(response.data || []))
+      .catch(() => setTransporters([]));
+  }, [filters.terminal_id]);
+  const synchronize = (next) => {
+    setApplied(next);
+    setSearchParams(
+      Object.fromEntries(
+        Object.entries(next).filter(([, value]) => value && value !== 25),
+      ),
+    );
+  };
+  const pagination = state.pagination || {};
+  const page = pagination.page || applied.page || 1;
+  const pages = pagination.totalPages || 1;
+  return (
+    <main className="page regional-page">
+      <RegionalHeader
+        title="Kendaraan Regional"
+        description="Drill-down kendaraan seluruh Integrated Terminal dalam wilayah Sulawesi dengan akses hanya-baca."
+      />
+      <div className="readonly-banner">
+        <Eye size={18} />
+        <span>
+          <strong>Mode hanya-baca.</strong> Data kendaraan tidak dapat ditambah,
+          diubah, disetujui, ditolak, atau dinonaktifkan oleh Regional Manager.
+        </span>
+      </div>
+      <form
+        className="regional-filter panel"
+        onSubmit={(event) => {
+          event.preventDefault();
+          synchronize({ ...filters, page: 1 });
+        }}
+      >
+        <TerminalFilter
+          terminals={terminals}
+          value={filters.terminal_id}
+          onChange={(value) =>
+            setFilters({ ...filters, terminal_id: value, transporter_id: "" })
+          }
+        />
+        <label>
+          Transportir
+          <select
+            value={filters.transporter_id}
+            onChange={(event) =>
+              setFilters({ ...filters, transporter_id: event.target.value })
+            }
+          >
+            <option value="">Semua transportir</option>
+            {transporters.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Jenis
+          <select
+            value={filters.jenis}
+            onChange={(event) =>
+              setFilters({ ...filters, jenis: event.target.value })
+            }
+          >
+            <option value="">Semua jenis</option>
+            <option value="SPBU">SPBU</option>
+            <option value="INDUSTRI">Industri</option>
+          </select>
+        </label>
+        <label>
+          Status
+          <select
+            value={filters.status}
+            onChange={(event) =>
+              setFilters({ ...filters, status: event.target.value })
+            }
+          >
+            <option value="">Semua status</option>
+            <option value="AKTIF">Aktif</option>
+            <option value="NONAKTIF">Nonaktif</option>
+          </select>
+        </label>
+        <label className="regional-search">
+          Pencarian
+          <input
+            value={filters.search}
+            onChange={(event) =>
+              setFilters({ ...filters, search: event.target.value })
+            }
+            placeholder="Nomor polisi, merek, atau transportir"
+          />
+        </label>
+        <button className="button primary">
+          <Search size={16} />
+          Terapkan
+        </button>
+      </form>
+      {state.loading ? (
+        <LoadingState />
+      ) : state.error ? (
+        <ErrorState message={state.error} retry={state.reload} />
+      ) : (
+        <section className="panel">
+          <p className="muted">
+            Menampilkan {state.data?.length || 0} dari {pagination.total || 0}{" "}
+            kendaraan.
+          </p>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Terminal</th>
+                  <th>Nomor polisi</th>
+                  <th>Transportir</th>
+                  <th>Jenis</th>
+                  <th>Merk/Tahun</th>
+                  <th>Produk/Kapasitas</th>
+                  <th>Status</th>
+                  <th>E-KIM</th>
+                  <th>Riwayat</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(state.data || []).length ? (
+                  state.data.map((row) => (
+                    <tr key={row.id}>
+                      <td data-label="Terminal">
+                        <strong>{row.terminal_name}</strong>
+                        <small>{row.terminal_code}</small>
+                      </td>
+                      <td data-label="Nomor polisi">
+                        <strong>{row.nomor_polisi}</strong>
+                        <small>{row.nomor_urut || "—"}</small>
+                      </td>
+                      <td data-label="Transportir">
+                        {row.nama_transport || "—"}
+                      </td>
+                      <td data-label="Jenis">{row.jenis}</td>
+                      <td data-label="Merk/Tahun">
+                        {row.merk_mobil || "—"} {row.tahun_kendaraan || ""}
+                      </td>
+                      <td data-label="Produk/Kapasitas">
+                        {row.produk || "—"} / {row.kapasitas || "—"}
+                      </td>
+                      <td data-label="Status">{row.status}</td>
+                      <td data-label="E-KIM">
+                        {formatDate(row.ekim_valid_until)}
+                      </td>
+                      <td data-label="Riwayat">
+                        <Link to={`/regional/vehicles/${row.id}/history`}>
+                          Lihat riwayat
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="9">
+                      <div className="empty">
+                        Tidak ada kendaraan sesuai filter.
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="checklist-pagination">
+            <button
+              disabled={page <= 1}
+              onClick={() => synchronize({ ...applied, page: 1 })}
+            >
+              First
+            </button>
+            <button
+              disabled={page <= 1}
+              onClick={() => synchronize({ ...applied, page: page - 1 })}
+            >
+              Prev
+            </button>
+            <span>
+              Halaman <strong>{page}</strong> dari <strong>{pages}</strong>
+            </span>
+            <button
+              disabled={page >= pages}
+              onClick={() => synchronize({ ...applied, page: page + 1 })}
+            >
+              Next
+            </button>
+            <button
+              disabled={page >= pages}
+              onClick={() => synchronize({ ...applied, page: pages })}
+            >
+              Last
+            </button>
+          </div>
+        </section>
+      )}
+    </main>
+  );
+}
+
+export function RegionalVehicleHistoryPage() {
+  const { id } = useParams();
+  const [state, setState] = useState({ loading: true, rows: [], error: "" });
+  const load = useCallback(async () => {
+    setState((current) => ({ ...current, loading: true, error: "" }));
+    try {
+      const response = await api.vehicleHistory(id);
+      setState({ loading: false, rows: response.data || [], error: "" });
+    } catch (error) {
+      setState({ loading: false, rows: [], error: error.message });
+    }
+  }, [id]);
+  useEffect(() => {
+    load();
+  }, [load]);
+  return (
+    <main className="page regional-page">
+      <RegionalHeader
+        title="Riwayat Kendaraan"
+        description="Riwayat perubahan kendaraan berdasarkan aktor dan waktu dengan akses hanya-baca."
+      >
+        <Link className="button secondary" to="/regional/vehicles">
+          Kembali
+        </Link>
+      </RegionalHeader>
+      {state.loading ? (
+        <LoadingState />
+      ) : state.error ? (
+        <ErrorState message={state.error} retry={load} />
+      ) : (
+        <section className="panel">
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Waktu</th>
+                  <th>Aksi</th>
+                  <th>Pelaksana</th>
+                  <th>Catatan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.rows.length ? (
+                  state.rows.map((row) => (
+                    <tr key={row.id}>
+                      <td data-label="Waktu">{row.created_at}</td>
+                      <td data-label="Aksi">{row.action}</td>
+                      <td data-label="Pelaksana">
+                        {row.actor_name || "Sistem"}
+                      </td>
+                      <td data-label="Catatan">{row.notes || "—"}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4">
+                      <div className="empty">
+                        Belum ada riwayat perubahan kendaraan.
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+    </main>
+  );
+}
+
 export function RegionalEkimPage() {
   const terminals = useTerminals();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [transporters, setTransporters] = useState([]);
   const [filters, setFilters] = useState({
-    terminal_id: "",
-    status: "",
-    transporter_id: "",
-    search: "",
-    page: 1,
+    terminal_id: searchParams.get("terminal_id") || "",
+    status: searchParams.get("status") || "",
+    transporter_id: searchParams.get("transporter_id") || "",
+    search: searchParams.get("search") || "",
+    page: Number(searchParams.get("page")) || 1,
     limit: 25,
   });
   const [applied, setApplied] = useState(filters);
@@ -265,7 +680,25 @@ export function RegionalEkimPage() {
   }, [filters.terminal_id]);
   const apply = (event) => {
     event.preventDefault();
-    setApplied({ ...filters, page: 1 });
+    const next = { ...filters, page: 1 };
+    setApplied(next);
+    setSearchParams(
+      Object.fromEntries(
+        Object.entries(next).filter(([, value]) => value && value !== 25),
+      ),
+    );
+  };
+  const pagination = state.pagination || {};
+  const page = pagination.page || applied.page || 1;
+  const pages = pagination.totalPages || 1;
+  const go = (nextPage) => {
+    const next = { ...applied, page: nextPage };
+    setApplied(next);
+    setSearchParams(
+      Object.fromEntries(
+        Object.entries(next).filter(([, value]) => value && value !== 25),
+      ),
+    );
   };
   return (
     <main className="page regional-page">
@@ -327,6 +760,10 @@ export function RegionalEkimPage() {
         <ErrorState message={state.error} retry={state.reload} />
       ) : (
         <section className="panel">
+          <p className="muted">
+            Menampilkan {(state.data || []).length} dari {pagination.total || 0}{" "}
+            kendaraan.
+          </p>
           <div className="table-scroll">
             <table>
               <thead>
@@ -383,6 +820,23 @@ export function RegionalEkimPage() {
                 )}
               </tbody>
             </table>
+          </div>
+          <div className="checklist-pagination">
+            <button disabled={page <= 1} onClick={() => go(1)}>
+              First
+            </button>
+            <button disabled={page <= 1} onClick={() => go(page - 1)}>
+              Prev
+            </button>
+            <span>
+              Halaman <strong>{page}</strong> dari <strong>{pages}</strong>
+            </span>
+            <button disabled={page >= pages} onClick={() => go(page + 1)}>
+              Next
+            </button>
+            <button disabled={page >= pages} onClick={() => go(pages)}>
+              Last
+            </button>
           </div>
         </section>
       )}
@@ -530,14 +984,28 @@ export function RegionalReportPage() {
 
 export function RegionalAuditPage() {
   const terminals = useTerminals();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState({
-    terminal_id: "",
-    search: "",
-    date_from: "",
-    date_to: "",
+    terminal_id: searchParams.get("terminal_id") || "",
+    search: searchParams.get("search") || "",
+    date_from: searchParams.get("date_from") || "",
+    date_to: searchParams.get("date_to") || "",
+    page: Number(searchParams.get("page")) || 1,
+    limit: 50,
   });
   const [applied, setApplied] = useState(filters);
   const state = useRegionalData(api.regionalAudits, applied);
+  const synchronize = (next) => {
+    setApplied(next);
+    setSearchParams(
+      Object.fromEntries(
+        Object.entries(next).filter(([, value]) => value && value !== 50),
+      ),
+    );
+  };
+  const pagination = state.pagination || {};
+  const page = pagination.page || applied.page || 1;
+  const pages = pagination.totalPages || 1;
   return (
     <main className="page regional-page">
       <RegionalHeader
@@ -548,7 +1016,7 @@ export function RegionalAuditPage() {
         className="regional-filter panel"
         onSubmit={(e) => {
           e.preventDefault();
-          setApplied(filters);
+          synchronize({ ...filters, page: 1 });
         }}
       >
         <TerminalFilter
@@ -595,6 +1063,10 @@ export function RegionalAuditPage() {
         <ErrorState message={state.error} retry={state.reload} />
       ) : (
         <section className="panel">
+          <p className="muted">
+            Menampilkan {(state.data || []).length} dari {pagination.total || 0}{" "}
+            aktivitas.
+          </p>
           <div className="table-scroll">
             <table>
               <thead>
@@ -632,6 +1104,35 @@ export function RegionalAuditPage() {
                 )}
               </tbody>
             </table>
+          </div>
+          <div className="checklist-pagination">
+            <button
+              disabled={page <= 1}
+              onClick={() => synchronize({ ...applied, page: 1 })}
+            >
+              First
+            </button>
+            <button
+              disabled={page <= 1}
+              onClick={() => synchronize({ ...applied, page: page - 1 })}
+            >
+              Prev
+            </button>
+            <span>
+              Halaman <strong>{page}</strong> dari <strong>{pages}</strong>
+            </span>
+            <button
+              disabled={page >= pages}
+              onClick={() => synchronize({ ...applied, page: page + 1 })}
+            >
+              Next
+            </button>
+            <button
+              disabled={page >= pages}
+              onClick={() => synchronize({ ...applied, page: pages })}
+            >
+              Last
+            </button>
           </div>
         </section>
       )}

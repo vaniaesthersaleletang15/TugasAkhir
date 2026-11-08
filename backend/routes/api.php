@@ -24,10 +24,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/dashboard', [PrimaController::class, 'dashboard']);
         Route::get('/regional/terminals', [RegionalController::class, 'terminals']);
         Route::get('/regional/dashboard', [RegionalController::class, 'dashboard']);
+        Route::get('/regional/vehicles', [RegionalController::class, 'vehicles']);
         Route::get('/regional/ekim', [RegionalController::class, 'ekim']);
         Route::get('/regional/report', [RegionalController::class, 'report']);
         Route::get('/regional/audits', [RegionalController::class, 'audits']);
         Route::get('/regional/documents', [RegionalController::class, 'documents']);
+        Route::get('/regional/documents/{id}/download', [RegionalController::class, 'downloadDocument'])->whereNumber('id');
         Route::get('/regional/spvs', [RegionalController::class, 'spvs']);
         Route::post('/regional/spvs', [RegionalController::class, 'createSpv']);
         Route::patch('/regional/spvs/{id}/status', [RegionalController::class, 'toggleSpv'])->whereNumber('id');

@@ -3512,7 +3512,17 @@ export function NotificationsPage() {
           {!state.data.smtp_ready && (
             <Notice
               value={{
-                text: "SMTP belum lengkap. Lengkapi konfigurasi berikut agar notifikasi EKIM benar-benar terkirim melalui email.",
+                text:
+                  state.data.smtp_last_error ||
+                  "SMTP belum diverifikasi. Lengkapi konfigurasi berikut dan gunakan App Password jika memakai Gmail.",
+              }}
+            />
+          )}
+          {state.data.smtp_ready && (
+            <Notice
+              value={{
+                ok: true,
+                text: `SMTP terverifikasi${state.data.smtp_verified_at ? ` pada ${state.data.smtp_verified_at}` : ""}.`,
               }}
             />
           )}
@@ -3586,7 +3596,7 @@ export function NotificationsPage() {
                 </select>
               </label>
               <button className="button primary full">
-                Simpan konfigurasi
+                Uji koneksi dan simpan
               </button>
               {form.smtp_host === "mailpit" && (
                 <p className="muted full">

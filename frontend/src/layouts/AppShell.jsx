@@ -52,6 +52,8 @@ import {
   RegionalEkimPage,
   RegionalReportPage,
   RegionalSpvPage,
+  RegionalVehicleHistoryPage,
+  RegionalVehiclesPage,
 } from "../RegionalPages";
 import {
   MasterTransportersPage,
@@ -106,6 +108,11 @@ function menuFor(user) {
     });
   if (user.role === "regional_manager")
     common.push(
+      {
+        to: "/regional/vehicles",
+        label: "Kendaraan Regional",
+        icon: Truck,
+      },
       {
         to: "/regional/documents",
         label: "Dokumen Regional",
@@ -269,6 +276,26 @@ export default function AppShell({ user, onLogout }) {
         </header>
         <Routes>
           <Route path="/profile" element={<ProfilePage user={user} />} />
+          <Route
+            path="/regional/vehicles"
+            element={
+              user.role === "regional_manager" ? (
+                <RegionalVehiclesPage />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
+            path="/regional/vehicles/:id/history"
+            element={
+              user.role === "regional_manager" ? (
+                <RegionalVehicleHistoryPage />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
           <Route
             path="/regional/documents"
             element={
