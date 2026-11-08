@@ -114,7 +114,15 @@ class RegionalManagerTest extends TestCase
 
     public function test_dashboard_period_filter_is_applied_to_summary_and_terminal_comparison(): void
     {
-        $terminalId = DB::table('integrated_terminals')->where('code', 'IT-BITUNG')->value('id');
+        $terminalId = DB::table('integrated_terminals')->insertGetId([
+            'code' => 'IT-PERIOD-TEST',
+            'name' => 'Terminal Period Test',
+            'region_code' => 'SULAWESI',
+            'region_name' => 'Regional Sulawesi',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         foreach ([
             ['2026-01-10', 'approved', 'DB 1001 AA'],
             ['2026-01-11', 'pending_hsse', 'DB 1002 AA'],
