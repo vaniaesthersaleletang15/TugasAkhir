@@ -438,24 +438,24 @@ class AdminController extends Controller
                 ->orderByDesc('reviewed_at')
                 ->value('tanggal_berlaku');
 
-            $draftIds = DB::table('formulir_checklist')
+            $editableIds = DB::table('formulir_checklist')
                 ->where('nomor_polisi', $d->nomor_polisi)
-                ->where('status_approval', 'draft')
+                ->whereIn('status_approval', ['draft', 'pending_hsse'])
                 ->pluck('id');
 
-            if ($draftIds->isEmpty()) {
+            if ($editableIds->isEmpty()) {
                 return 0;
             }
 
             return DB::table('checklist_items')
-                ->whereIn('formulir_id', $draftIds)
+                ->whereIn('formulir_id', $editableIds)
                 ->where('item_name', self::DOCUMENT_CHECKLIST_ITEMS[$d->jenis_dokumen])
                 ->update(['tanggal_expire' => $activeExpiry]);
         });
         $this->audit($r, 'DOCUMENT_REVIEW', "Dokumen {$d->jenis_dokumen} {$d->nomor_polisi} menjadi $status; $updatedDraftItems item checklist draft diperbarui");
 
         $message = $status === 'DISETUJUI' && isset(self::DOCUMENT_CHECKLIST_ITEMS[$d->jenis_dokumen])
-            ? 'Dokumen disetujui. Masa berlaku surat kendaraan dan checklist draft telah diperbarui otomatis.'
+            ? 'Dokumen disetujui. Masa berlaku surat kendaraan dan checklist yang belum ditandatangani telah diperbarui otomatis.'
             : 'Status dokumen berhasil diperbarui.';
 
         return $this->ok($message, ['updated_draft_items' => $updatedDraftItems]);

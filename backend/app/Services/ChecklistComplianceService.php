@@ -8,6 +8,14 @@ class ChecklistComplianceService
 {
     private const BASE_REQUIRED_DOCUMENTS = ['STNK', 'PAJAK', 'SURAT_KEUR', 'SURAT_TERA'];
 
+    private const DOCUMENT_CHECKLIST_ITEMS = [
+        'STNK' => 'STNK',
+        'PAJAK' => 'PAJAK',
+        'SIM' => 'SIMFIT (Industri)',
+        'SURAT_KEUR' => 'Surat Keur DLLAAJR',
+        'SURAT_TERA' => 'Surat Tera Metrologi',
+    ];
+
     public function validateItems(array $items): ?string
     {
         if ($items === []) {
@@ -52,21 +60,93 @@ class ChecklistComplianceService
         if (strtoupper((string) $form->jenis_kendaraan) === 'INDUSTRI') {
             $required[] = 'SIM';
         }
-        $approved = DB::table('dokumen_kendaraan')
+        $expiries = DB::table('dokumen_kendaraan')
             ->where('terminal_id', $form->terminal_id)
             ->where('nomor_polisi', $form->nomor_polisi)
             ->where('status', 'DISETUJUI')
             ->whereIn('jenis_dokumen', $required)
-            ->where(fn ($query) => $query->whereNull('tanggal_berlaku')->orWhereDate('tanggal_berlaku', '>=', $form->tanggal_pemeriksaan))
-            ->pluck('jenis_dokumen')
-            ->unique()
-            ->all();
-        $missing = array_values(array_diff($required, $approved));
+            ->whereNotNull('tanggal_berlaku')
+            ->orderByDesc('tanggal_berlaku')
+            ->get(['jenis_dokumen', 'tanggal_berlaku'])
+            ->reduce(function (array $result, object $document): array {
+                $result[$document->jenis_dokumen] ??= (string) $document->tanggal_berlaku;
+
+                return $result;
+            }, []);
+
+        // Data lama PRIMA menyimpan masa berlaku surat pada item checklist.
+        // Nilai itu tetap berlaku untuk jenis surat yang belum mempunyai record
+        // dokumen terverifikasi. Dokumen baru yang telah disetujui selalu menang.
+        $itemToDocument = array_flip(self::DOCUMENT_CHECKLIST_ITEMS);
+        foreach ($items as $item) {
+            $documentType = $itemToDocument[$item->item_name] ?? null;
+            if ($documentType && ! isset($expiries[$documentType]) && filled($item->tanggal_expire)) {
+                $expiries[$documentType] = (string) $item->tanggal_expire;
+            }
+        }
+
+        $missing = array_values(array_filter(
+            $required,
+            fn (string $type): bool => ! isset($expiries[$type])
+                || $expiries[$type] < (string) $form->tanggal_pemeriksaan,
+        ));
         if ($missing !== []) {
             return 'Dokumen wajib belum lengkap atau kedaluwarsa: '.implode(', ', $missing).'.';
         }
 
         return null;
+    }
+
+    /**
+     * Menghasilkan masa berlaku efektif per kendaraan. Dokumen terverifikasi
+     * diprioritaskan; jenis yang belum mempunyai dokumen mengambil nilai
+     * terakhir dari checklist sebelumnya agar surat lain tidak perlu diisi ulang.
+     *
+     * @param  iterable<object>  $vehicles
+     * @return array<string, array<string, string>>
+     */
+    public function effectiveDocumentExpiries(iterable $vehicles): array
+    {
+        $vehicles = collect($vehicles);
+        $plates = $vehicles->pluck('nomor_polisi')->filter()->unique()->values();
+        if ($plates->isEmpty()) {
+            return [];
+        }
+
+        $result = [];
+        $documents = DB::table('dokumen_kendaraan')
+            ->whereIn('nomor_polisi', $plates)
+            ->where('status', 'DISETUJUI')
+            ->whereIn('jenis_dokumen', array_keys(self::DOCUMENT_CHECKLIST_ITEMS))
+            ->whereNotNull('tanggal_berlaku')
+            ->orderByDesc('tanggal_berlaku')
+            ->orderByDesc('reviewed_at')
+            ->get(['nomor_polisi', 'jenis_dokumen', 'tanggal_berlaku']);
+        foreach ($documents as $document) {
+            $result[$document->nomor_polisi][$document->jenis_dokumen]
+                ??= (string) $document->tanggal_berlaku;
+        }
+
+        $itemToDocument = array_flip(self::DOCUMENT_CHECKLIST_ITEMS);
+        $history = DB::table('checklist_items as item')
+            ->join('formulir_checklist as form', 'form.id', '=', 'item.formulir_id')
+            ->whereIn('form.nomor_polisi', $plates)
+            ->whereIn('item.item_name', array_values(self::DOCUMENT_CHECKLIST_ITEMS))
+            ->whereNotNull('item.tanggal_expire')
+            ->where('form.status_approval', '<>', 'rejected')
+            ->orderByDesc('form.tanggal_pemeriksaan')
+            ->orderByDesc('form.created_at')
+            ->orderByDesc('form.id')
+            ->get(['form.nomor_polisi', 'item.item_name', 'item.tanggal_expire']);
+        foreach ($history as $item) {
+            $documentType = $itemToDocument[$item->item_name] ?? null;
+            if ($documentType) {
+                $result[$item->nomor_polisi][$documentType]
+                    ??= (string) $item->tanggal_expire;
+            }
+        }
+
+        return $result;
     }
 
     public function snapshot(int $formId): array

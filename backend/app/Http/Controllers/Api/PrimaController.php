@@ -445,7 +445,7 @@ class PrimaController extends Controller
         return $this->ok('OK', ['total' => (clone $query)->count(), 'spbu' => (clone $query)->whereRaw('UPPER(jenis_kendaraan)=?', ['SPBU'])->count(), 'industri' => (clone $query)->whereRaw('UPPER(jenis_kendaraan)=?', ['INDUSTRI'])->count(), 'bulan_ini' => (clone $query)->whereBetween('tanggal_pemeriksaan', [$start, $end])->count(), 'kim_kedaluwarsa' => (clone $query)->whereNotNull('ekim_valid_until')->whereDate('ekim_valid_until', '<', today())->count()]);
     }
 
-    public function vehicles(Request $r): JsonResponse
+    public function vehicles(Request $r, ChecklistComplianceService $compliance): JsonResponse
     {
         $q = DB::table('kendaraan as k')->leftJoin('integrated_terminals as t', 't.id', '=', 'k.terminal_id')->select('k.*', 't.code as terminal_code', 't.name as terminal_name')->selectSub(fn ($s) => $s->from('pengurus_kendaraan as pk')->whereColumn('pk.nomor_polisi', 'k.nomor_polisi')->latest('pk.created_at')->select('pk.user_id')->limit(1), 'user_id_transportir')->latest('k.created_at');
         if ($r->user()->role === 'pengurus') {
@@ -458,20 +458,7 @@ class PrimaController extends Controller
         }
 
         $vehicles = $q->get();
-        $approvedDocuments = DB::table('dokumen_kendaraan')
-            ->whereIn('nomor_polisi', $vehicles->pluck('nomor_polisi'))
-            ->where('status', 'DISETUJUI')
-            ->whereIn('jenis_dokumen', ['STNK', 'PAJAK', 'SIM', 'SURAT_KEUR', 'SURAT_TERA'])
-            ->whereNotNull('tanggal_berlaku')
-            ->orderByDesc('tanggal_berlaku')
-            ->orderByDesc('reviewed_at')
-            ->get(['nomor_polisi', 'jenis_dokumen', 'tanggal_berlaku']);
-        $expiryByVehicle = [];
-        foreach ($approvedDocuments as $document) {
-            if (! isset($expiryByVehicle[$document->nomor_polisi][$document->jenis_dokumen])) {
-                $expiryByVehicle[$document->nomor_polisi][$document->jenis_dokumen] = (string) $document->tanggal_berlaku;
-            }
-        }
+        $expiryByVehicle = $compliance->effectiveDocumentExpiries($vehicles);
         $vehicles->each(function ($vehicle) use ($expiryByVehicle): void {
             $vehicle->approved_document_expiries = $expiryByVehicle[$vehicle->nomor_polisi] ?? [];
         });
